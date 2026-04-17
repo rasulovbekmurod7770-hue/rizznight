@@ -15,32 +15,35 @@ class ProfilePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(
-      StreamProvider<UserModel>((ref) =>
-          ref.read(firestoreServiceProvider).userStream(uid)),
-    );
     final isOwnProfile =
         ref.read(authServiceProvider).currentUser?.uid == uid;
     final isDesktop = MediaQuery.of(context).size.width > 768;
 
     return RzScaffold(
-      body: userAsync.when(
-        loading: () => const Center(
-          child: Padding(
-            padding: EdgeInsets.all(80),
-            child: CircularProgressIndicator(
-                color: AppColors.primary, strokeWidth: 1),
-          ),
-        ),
-        error: (_, __) => const Center(
-          child: Text('User not found.',
-              style: TextStyle(color: AppColors.textSecondary)),
-        ),
-        data: (user) => _ProfileContent(
-          user: user,
-          isOwnProfile: isOwnProfile,
-          isDesktop: isDesktop,
-        ),
+      body: FutureBuilder<UserModel?>(
+        future: ref.read(firestoreServiceProvider).getUser(uid),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(80),
+                child: CircularProgressIndicator(
+                    color: AppColors.primary, strokeWidth: 1),
+              ),
+            );
+          }
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(
+              child: Text('User not found.',
+                  style: TextStyle(color: AppColors.textSecondary)),
+            );
+          }
+          return _ProfileContent(
+            user: snapshot.data!,
+            isOwnProfile: isOwnProfile,
+            isDesktop: isDesktop,
+          );
+        },
       ),
     );
   }
