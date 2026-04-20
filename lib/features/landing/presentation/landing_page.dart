@@ -105,7 +105,7 @@ class _HeroSection extends ConsumerWidget {
                   ),
                   const SizedBox(height: 40),
                   RzButton(
-                    label: isLoggedIn ? 'CLAIM YOUR SPOT' : 'REQUEST AN INVITE',
+                    label: isLoggedIn ? 'CLAIM YOUR SPOT' : 'SIGN UP',
                     onTap: () => isLoggedIn
                         ? context.go(AppRoutes.runs)
                         : context.go(AppRoutes.signup),
@@ -661,12 +661,12 @@ class _PhotosSection extends StatelessWidget {
 
   // Placeholder photos — replace URLs with your actual Google Drive direct image links
   static const List<Map<String, String>> _photos = [
-    {'url': 'https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=600', 'label': 'RUN #1'},
-    {'url': 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600', 'label': 'RUN #2'},
-    {'url': 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?w=600', 'label': 'RUN #2'},
-    {'url': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600', 'label': 'RUN #1'},
-    {'url': 'https://images.unsplash.com/photo-1504025468847-0e438279542c?w=600', 'label': 'RUN #2'},
-    {'url': 'https://images.unsplash.com/photo-1461897104016-0b3b00cc81ee?w=600', 'label': 'RUN #1'},
+    {'url': 'assets/images/IMG_8081.JPG', 'label': 'RUN #1'},
+    {'url': 'assets/images/IMG_8098.JPG', 'label': 'RUN #2'},
+    {'url': 'assets/images/IMG_8905.JPG', 'label': 'RUN #2'},
+    {'url': 'assets/images/IMG_9030.JPG', 'label': 'RUN #1'},
+    {'url': 'assets/images/IMG_9034.JPG', 'label': 'RUN #2'},
+    {'url': 'assets/images/IMG_9035.JPG', 'label': 'RUN #1'},
   ];
 
   @override
@@ -705,7 +705,7 @@ class _PhotosSection extends StatelessWidget {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
+                  Image.asset(
                     photo['url']!,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
