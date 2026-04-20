@@ -17,7 +17,8 @@ class FirestoreService {
   }
 
   Future<UserModel?> getUser(String uid) async {
-    final doc = await _db.collection(AppConstants.usersCollection).doc(uid).get();
+    final doc =
+        await _db.collection(AppConstants.usersCollection).doc(uid).get();
     return doc.exists ? UserModel.fromDoc(doc) : null;
   }
 
@@ -56,14 +57,26 @@ class FirestoreService {
     return _db
         .collection(AppConstants.runEventsCollection)
         .where('status', whereIn: ['upcoming', 'open'])
-        .orderBy('date')
+        // 👇 We remove the orderBy line so it stops crashing the server!
         .limit(1)
         .snapshots()
-        .map((snap) => snap.docs.isEmpty ? null : RunEventModel.fromDoc(snap.docs.first));
+        .map((snap) =>
+            snap.docs.isEmpty ? null : RunEventModel.fromDoc(snap.docs.first));
+  }
+
+  Stream<RunEventModel?> runEventStream(String eventId) {
+    return _db
+        .collection(AppConstants.runEventsCollection)
+        .doc(eventId)
+        .snapshots()
+        .map((doc) => doc.exists ? RunEventModel.fromDoc(doc) : null);
   }
 
   Future<RunEventModel?> getRunEvent(String eventId) async {
-    final doc = await _db.collection(AppConstants.runEventsCollection).doc(eventId).get();
+    final doc = await _db
+        .collection(AppConstants.runEventsCollection)
+        .doc(eventId)
+        .get();
     return doc.exists ? RunEventModel.fromDoc(doc) : null;
   }
 
@@ -72,7 +85,10 @@ class FirestoreService {
   }
 
   Future<void> updateRunEvent(String eventId, Map<String, dynamic> data) async {
-    await _db.collection(AppConstants.runEventsCollection).doc(eventId).update(data);
+    await _db
+        .collection(AppConstants.runEventsCollection)
+        .doc(eventId)
+        .update(data);
   }
 
   // ── Slots ──────────────────────────────────────────────────
@@ -95,16 +111,19 @@ class FirestoreService {
 
     // Add slot
     final slotRef = _db.collection(AppConstants.slotsCollection).doc();
-    batch.set(slotRef, SlotModel(
-      id: slotRef.id,
-      eventId: eventId,
-      userId: userId,
-      userName: userName,
-      claimedAt: DateTime.now(),
-    ).toMap());
+    batch.set(
+        slotRef,
+        SlotModel(
+          id: slotRef.id,
+          eventId: eventId,
+          userId: userId,
+          userName: userName,
+          claimedAt: DateTime.now(),
+        ).toMap());
 
     // Increment slotsTaken
-    final eventRef = _db.collection(AppConstants.runEventsCollection).doc(eventId);
+    final eventRef =
+        _db.collection(AppConstants.runEventsCollection).doc(eventId);
     batch.update(eventRef, {'slotsTaken': FieldValue.increment(1)});
 
     await batch.commit();
@@ -126,7 +145,8 @@ class FirestoreService {
     final batch = _db.batch();
     batch.delete(query.docs.first.reference);
 
-    final eventRef = _db.collection(AppConstants.runEventsCollection).doc(eventId);
+    final eventRef =
+        _db.collection(AppConstants.runEventsCollection).doc(eventId);
     batch.update(eventRef, {'slotsTaken': FieldValue.increment(-1)});
 
     await batch.commit();
@@ -136,7 +156,7 @@ class FirestoreService {
     return _db
         .collection(AppConstants.slotsCollection)
         .where('eventId', isEqualTo: eventId)
-        .orderBy('claimedAt')
+        // .orderBy('claimedAt')
         .snapshots()
         .map((snap) => snap.docs.map(SlotModel.fromDoc).toList());
   }
@@ -178,7 +198,8 @@ class FirestoreService {
     }
 
     // Mark event as attendance done
-    final eventRef = _db.collection(AppConstants.runEventsCollection).doc(eventId);
+    final eventRef =
+        _db.collection(AppConstants.runEventsCollection).doc(eventId);
     batch.update(eventRef, {
       'attendanceMarked': true,
       'status': 'completed',
@@ -198,7 +219,9 @@ class FirestoreService {
   }
 
   Future<void> createAnnouncement(AnnouncementModel announcement) async {
-    await _db.collection(AppConstants.announcementsCollection).add(announcement.toMap());
+    await _db
+        .collection(AppConstants.announcementsCollection)
+        .add(announcement.toMap());
   }
 
   Future<void> deleteAnnouncement(String id) async {
@@ -209,12 +232,12 @@ class FirestoreService {
   Future<String> generateInviteCode() async {
     final code = _uuid.v4().substring(0, 8).toUpperCase();
     await _db.collection(AppConstants.inviteCodesCollection).add(
-      InviteCodeModel(
-        id: '',
-        code: code,
-        createdAt: DateTime.now(),
-      ).toMap(),
-    );
+          InviteCodeModel(
+            id: '',
+            code: code,
+            createdAt: DateTime.now(),
+          ).toMap(),
+        );
     return code;
   }
 

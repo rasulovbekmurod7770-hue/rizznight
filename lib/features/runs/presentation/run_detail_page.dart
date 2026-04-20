@@ -93,9 +93,13 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
 
   Widget _buildContent(RunEventModel event, bool isDesktop) {
     final currentUser = ref.read(authServiceProvider).currentUser;
+    
+    // 1. The string-based check we just added
     final hasSlotAsync = currentUser != null
-        ? ref.watch(userHasSlotProvider({'eventId': event.id, 'userId': currentUser.uid}))
+        ? ref.watch(userHasSlotProvider('${event.id}_${currentUser.uid}'))
         : const AsyncData(false);
+        
+    // 👇 2. MAKE SURE THIS LINE IS HERE! This is what fixes your error.
     final slots = ref.watch(eventSlotsProvider(event.id));
 
     return Padding(

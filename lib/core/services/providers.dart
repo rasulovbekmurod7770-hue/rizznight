@@ -22,48 +22,49 @@ final isAdminProvider = Provider<bool>((ref) {
 });
 
 // ── Leaderboard ────────────────────────────────────────────────
-final leaderboardProvider = StreamProvider<List<LeaderboardEntry>>((ref) {
+final leaderboardProvider = StreamProvider.autoDispose<List<LeaderboardEntry>>((ref) {
   return ref.read(firestoreServiceProvider).leaderboardStream();
 });
 
 // ── Run Events ─────────────────────────────────────────────────
-final runEventsProvider = StreamProvider<List<RunEventModel>>((ref) {
+final runEventsProvider = StreamProvider.autoDispose<List<RunEventModel>>((ref) {
   return ref.read(firestoreServiceProvider).runEventsStream();
 });
 
-final nextRunProvider = StreamProvider<RunEventModel?>((ref) {
+final nextRunProvider = StreamProvider.autoDispose<RunEventModel?>((ref) {
   return ref.read(firestoreServiceProvider).nextRunStream();
 });
 
-final runEventProvider = StreamProvider.family<RunEventModel?, String>((ref, eventId) {
-  return ref.read(firestoreServiceProvider)
-      .eventSlotsStream(eventId)
-      .asyncMap((_) => ref.read(firestoreServiceProvider).getRunEvent(eventId));
+final runEventProvider = StreamProvider.autoDispose.family<RunEventModel?, String>((ref, eventId) {
+  return ref.read(firestoreServiceProvider).runEventStream(eventId);
 });
 
 // ── Slots ──────────────────────────────────────────────────────
-final eventSlotsProvider = StreamProvider.family<List<SlotModel>, String>((ref, eventId) {
+// Note: When using .family, autoDispose goes right in the middle!
+final eventSlotsProvider = StreamProvider.autoDispose.family<List<SlotModel>, String>((ref, eventId) {
   return ref.read(firestoreServiceProvider).eventSlotsStream(eventId);
 });
 
-final userHasSlotProvider = FutureProvider.family<bool, Map<String, String>>((ref, params) {
+final userHasSlotProvider = FutureProvider.autoDispose.family<bool, String>((ref, combinedIds) {
+  // We split the string back into two pieces
+  final parts = combinedIds.split('_'); 
   return ref.read(firestoreServiceProvider).hasUserClaimedSlot(
-    params['eventId']!,
-    params['userId']!,
+    parts[0], // eventId
+    parts[1], // userId
   );
 });
 
 // ── Announcements ──────────────────────────────────────────────
-final announcementsProvider = StreamProvider<List<AnnouncementModel>>((ref) {
+final announcementsProvider = StreamProvider.autoDispose<List<AnnouncementModel>>((ref) {
   return ref.read(firestoreServiceProvider).announcementsStream();
 });
 
 // ── Invite Codes ───────────────────────────────────────────────
-final inviteCodesProvider = StreamProvider<List<InviteCodeModel>>((ref) {
+final inviteCodesProvider = StreamProvider.autoDispose<List<InviteCodeModel>>((ref) {
   return ref.read(firestoreServiceProvider).inviteCodesStream();
 });
 
 // ── Club Stats ─────────────────────────────────────────────────
-final clubStatsProvider = FutureProvider<Map<String, dynamic>>((ref) {
+final clubStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref.read(firestoreServiceProvider).getClubStats();
 });

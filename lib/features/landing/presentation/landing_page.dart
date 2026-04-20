@@ -164,12 +164,12 @@ class _NextRunSection extends ConsumerWidget {
         error: (_, __) => const SizedBox.shrink(),
         data: (run) {
           if (run == null) {
-            return Center(
+            return const Center(
               child: Column(
                 children: [
-                  const RzSectionHeader(title: 'NEXT RUN'),
-                  const SizedBox(height: 16),
-                  const Text(
+                   RzSectionHeader(title: 'NEXT RUN'),
+                   SizedBox(height: 16),
+                   Text(
                     'No upcoming runs announced yet.',
                     style: TextStyle(color: AppColors.textSecondary),
                   ),

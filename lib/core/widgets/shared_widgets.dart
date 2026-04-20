@@ -15,18 +15,25 @@ class RzNavbar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isLoggedIn = ref.watch(authStateProvider).valueOrNull != null;
-    final isAdmin = ref.watch(isAdminProvider);
+    final currentUser = ref.watch(authStateProvider).valueOrNull;
+
+    // 👇 2. Calculate both booleans based on that live user
+    final isLoggedIn = currentUser != null;
+    final isAdmin =
+        currentUser != null && AppConstants.adminUids.contains(currentUser.uid);
     final isDesktop = MediaQuery.of(context).size.width > 768;
 
     return Container(
       height: AppConstants.navbarHeight,
       decoration: const BoxDecoration(
         color: AppColors.background,
-        border: Border(bottom: BorderSide(color: Color(0xFF2A2A2A), width: 0.5)),
+        border:
+            Border(bottom: BorderSide(color: Color(0xFF2A2A2A), width: 0.5)),
       ),
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppConstants.desktopPadding : AppConstants.mobilePadding,
+        horizontal: isDesktop
+            ? AppConstants.desktopPadding
+            : AppConstants.mobilePadding,
       ),
       child: Row(
         children: [
@@ -41,7 +48,8 @@ class RzNavbar extends ConsumerWidget implements PreferredSizeWidget {
             const SizedBox(width: 24),
             _NavLink('LEADERBOARD', () => context.go(AppRoutes.leaderboard)),
             const SizedBox(width: 24),
-            _NavLink('ANNOUNCEMENTS', () => context.go(AppRoutes.announcements)),
+            _NavLink(
+                'ANNOUNCEMENTS', () => context.go(AppRoutes.announcements)),
             if (isAdmin) ...[
               const SizedBox(width: 24),
               _NavLink('ADMIN', () => context.go(AppRoutes.admin)),
@@ -51,8 +59,8 @@ class RzNavbar extends ConsumerWidget implements PreferredSizeWidget {
               RzButton(
                 label: 'MY PROFILE',
                 onTap: () {
-                  final uid = ref.read(authServiceProvider).currentUser?.uid;
-                  if (uid != null) context.go('/profile/$uid');
+                  if (currentUser != null)
+                    context.go('/profile/${currentUser.uid}');
                 },
               )
             else
@@ -63,14 +71,16 @@ class RzNavbar extends ConsumerWidget implements PreferredSizeWidget {
           ] else
             IconButton(
               icon: const Icon(Icons.menu, color: AppColors.textPrimary),
-              onPressed: () => _showMobileMenu(context, ref, isLoggedIn, isAdmin),
+              onPressed: () =>
+                  _showMobileMenu(context, ref, isLoggedIn, isAdmin),
             ),
         ],
       ),
     );
   }
 
-  void _showMobileMenu(BuildContext context, WidgetRef ref, bool isLoggedIn, bool isAdmin) {
+  void _showMobileMenu(
+      BuildContext context, WidgetRef ref, bool isLoggedIn, bool isAdmin) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -80,10 +90,23 @@ class RzNavbar extends ConsumerWidget implements PreferredSizeWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _MobileNavItem('RUNS', () { Navigator.pop(context); context.go(AppRoutes.runs); }),
-            _MobileNavItem('LEADERBOARD', () { Navigator.pop(context); context.go(AppRoutes.leaderboard); }),
-            _MobileNavItem('ANNOUNCEMENTS', () { Navigator.pop(context); context.go(AppRoutes.announcements); }),
-            if (isAdmin) _MobileNavItem('ADMIN', () { Navigator.pop(context); context.go(AppRoutes.admin); }),
+            _MobileNavItem('RUNS', () {
+              Navigator.pop(context);
+              context.go(AppRoutes.runs);
+            }),
+            _MobileNavItem('LEADERBOARD', () {
+              Navigator.pop(context);
+              context.go(AppRoutes.leaderboard);
+            }),
+            _MobileNavItem('ANNOUNCEMENTS', () {
+              Navigator.pop(context);
+              context.go(AppRoutes.announcements);
+            }),
+            if (isAdmin)
+              _MobileNavItem('ADMIN', () {
+                Navigator.pop(context);
+                context.go(AppRoutes.admin);
+              }),
             const Divider(color: AppColors.border),
             if (isLoggedIn)
               _MobileNavItem('MY PROFILE', () {
@@ -92,7 +115,10 @@ class RzNavbar extends ConsumerWidget implements PreferredSizeWidget {
                 if (uid != null) context.go('/profile/$uid');
               })
             else
-              _MobileNavItem('LOGIN', () { Navigator.pop(context); context.go(AppRoutes.login); }),
+              _MobileNavItem('LOGIN', () {
+                Navigator.pop(context);
+                context.go(AppRoutes.login);
+              }),
           ],
         ),
       ),
@@ -205,7 +231,7 @@ class RzStarDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
         const Expanded(child: Divider(color: AppColors.border, thickness: 0.5)),
         Padding(
@@ -263,31 +289,41 @@ class RzFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Check screen size
+    final isDesktop = MediaQuery.of(context).size.width > 768;
+
     return Container(
+      width: double.infinity,
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 80),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const RzLogo(),
-          const Spacer(),
+      // 2. Shrink horizontal padding automatically on mobile
+      padding: EdgeInsets.symmetric(
+        vertical: 40, 
+        horizontal: isDesktop ? 80 : 20, 
+      ),
+      // 3. Use Wrap instead of Row so elements stack when squeezed!
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: 24, 
+        children: const [
+          RzLogo(),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 AppConstants.motto,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.primary,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 2,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                '© 2025 RIZZNIGHT. ALL RIGHTS RESERVED.',
+              SizedBox(height: 8),
+              Text(
+                '© 2026 RIZZNIGHT.',
                 style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 10,
