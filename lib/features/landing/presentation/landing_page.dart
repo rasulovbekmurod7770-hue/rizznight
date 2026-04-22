@@ -56,7 +56,8 @@ class _HeroSection extends ConsumerWidget {
           // Content
           Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 120, horizontal: 40),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 120, horizontal: 40),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -153,7 +154,9 @@ class _NextRunSection extends ConsumerWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         vertical: 60,
-        horizontal: isDesktop ? AppConstants.desktopPadding : AppConstants.mobilePadding,
+        horizontal: isDesktop
+            ? AppConstants.desktopPadding
+            : AppConstants.mobilePadding,
       ),
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -167,9 +170,9 @@ class _NextRunSection extends ConsumerWidget {
             return const Center(
               child: Column(
                 children: [
-                   RzSectionHeader(title: 'NEXT RUN'),
-                   SizedBox(height: 16),
-                   Text(
+                  RzSectionHeader(title: 'NEXT RUN'),
+                  SizedBox(height: 16),
+                  Text(
                     'No upcoming runs announced yet.',
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
@@ -203,7 +206,8 @@ class _NextRunCard extends ConsumerWidget {
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: AppColors.background,
-            border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 0.5),
+            border: Border.all(
+                color: AppColors.primary.withOpacity(0.3), width: 0.5),
           ),
           child: isDesktop
               ? Row(
@@ -249,24 +253,31 @@ class _RunInfo extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
-            const Icon(Icons.calendar_today_outlined, color: AppColors.primary, size: 14),
+            const Icon(Icons.calendar_today_outlined,
+                color: AppColors.primary, size: 14),
             const SizedBox(width: 8),
-            Text(dateStr, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            Text(dateStr,
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 13)),
           ],
         ),
         const SizedBox(height: 6),
         Row(
           children: [
-            const Icon(Icons.location_on_outlined, color: AppColors.primary, size: 14),
+            const Icon(Icons.location_on_outlined,
+                color: AppColors.primary, size: 14),
             const SizedBox(width: 8),
-            Text(run.location, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            Text(run.location,
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 13)),
           ],
         ),
         if (run.description != null) ...[
           const SizedBox(height: 16),
           Text(
             run.description!,
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+            style: const TextStyle(
+                color: AppColors.textSecondary, fontSize: 14, height: 1.5),
           ),
         ],
         const SizedBox(height: 20),
@@ -352,7 +363,9 @@ class _StatsStrip extends ConsumerWidget {
     return Container(
       padding: EdgeInsets.symmetric(
         vertical: 28,
-        horizontal: isDesktop ? AppConstants.desktopPadding : AppConstants.mobilePadding,
+        horizontal: isDesktop
+            ? AppConstants.desktopPadding
+            : AppConstants.mobilePadding,
       ),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.border, width: 0.5)),
@@ -366,7 +379,9 @@ class _StatsStrip extends ConsumerWidget {
           alignment: WrapAlignment.center,
           children: [
             _StatItem(value: '${s['totalMembers']}', label: 'ACTIVE RUNNERS'),
-            _StatItem(value: '${(s['totalKm'] as double).toStringAsFixed(0)} KM', label: 'TOTAL CLUB KM'),
+            _StatItem(
+                value: '${(s['totalKm'] as double).toStringAsFixed(0)} KM',
+                label: 'TOTAL CLUB KM'),
             _StatItem(value: fastestPace, label: 'LEADER THIS WEEK'),
           ],
         ),
@@ -419,7 +434,9 @@ class _AnnouncementsSection extends ConsumerWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         vertical: 60,
-        horizontal: isDesktop ? AppConstants.desktopPadding : AppConstants.mobilePadding,
+        horizontal: isDesktop
+            ? AppConstants.desktopPadding
+            : AppConstants.mobilePadding,
       ),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.border, width: 0.5)),
@@ -535,7 +552,9 @@ class _LeaderboardPreview extends ConsumerWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         vertical: 60,
-        horizontal: isDesktop ? AppConstants.desktopPadding : AppConstants.mobilePadding,
+        horizontal: isDesktop
+            ? AppConstants.desktopPadding
+            : AppConstants.mobilePadding,
       ),
       color: AppColors.surface,
       child: leaderboard.when(
@@ -550,7 +569,9 @@ class _LeaderboardPreview extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const RzSectionHeader(title: 'LEADERBOARD', subtitle: 'Ranked by total KM earned'),
+                  const RzSectionHeader(
+                      title: 'LEADERBOARD',
+                      subtitle: 'Ranked by total KM earned'),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => context.go(AppRoutes.leaderboard),
@@ -590,19 +611,27 @@ class _PodiumCard extends StatelessWidget {
 
   Color get medalColor {
     switch (entry.rank) {
-      case 1: return AppColors.gold;
-      case 2: return AppColors.silver;
-      case 3: return AppColors.bronze;
-      default: return AppColors.textMuted;
+      case 1:
+        return AppColors.gold;
+      case 2:
+        return AppColors.silver;
+      case 3:
+        return AppColors.bronze;
+      default:
+        return AppColors.textMuted;
     }
   }
 
   String get medal {
     switch (entry.rank) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      default: return '${entry.rank}';
+      case 1:
+        return '🥇';
+      case 2:
+        return '🥈';
+      case 3:
+        return '🥉';
+      default:
+        return '${entry.rank}';
     }
   }
 
@@ -614,7 +643,9 @@ class _PodiumCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.background,
         border: Border.all(
-          color: entry.rank == 1 ? AppColors.gold.withOpacity(0.4) : AppColors.border,
+          color: entry.rank == 1
+              ? AppColors.gold.withOpacity(0.4)
+              : AppColors.border,
           width: entry.rank == 1 ? 1 : 0.5,
         ),
       ),
@@ -661,12 +692,12 @@ class _PhotosSection extends StatelessWidget {
 
   // Placeholder photos — replace URLs with your actual Google Drive direct image links
   static const List<Map<String, String>> _photos = [
-    {'url': 'assets/images/IMG_8081.JPG', 'label': 'RUN #1'},
-    {'url': 'assets/images/IMG_8098.JPG', 'label': 'RUN #2'},
-    {'url': 'assets/images/IMG_8905.JPG', 'label': 'RUN #2'},
-    {'url': 'assets/images/IMG_9030.JPG', 'label': 'RUN #1'},
-    {'url': 'assets/images/IMG_9034.JPG', 'label': 'RUN #2'},
-    {'url': 'assets/images/IMG_9035.JPG', 'label': 'RUN #1'},
+    {'url': 'assets/images/IMG_9034.jpg', 'label': 'RUN #1'},
+    {'url': 'assets/images/IMG_8098.jpg', 'label': 'RUN #2'},
+    {'url': 'assets/images/IMG_9035.jpg', 'label': 'RUN #3'},
+    {'url': 'assets/images/IMG_9030.jpg', 'label': 'RUN #2'},
+    {'url': 'assets/images/IMG_8081.jpg', 'label': 'RUN #1'},
+    {'url': 'assets/images/IMG_8905.jpg', 'label': 'RUN #3'},
   ];
 
   @override
@@ -677,7 +708,9 @@ class _PhotosSection extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         vertical: 60,
-        horizontal: isDesktop ? AppConstants.desktopPadding : AppConstants.mobilePadding,
+        horizontal: isDesktop
+            ? AppConstants.desktopPadding
+            : AppConstants.mobilePadding,
       ),
       decoration: const BoxDecoration(
         border: Border(
@@ -688,7 +721,8 @@ class _PhotosSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const RzSectionHeader(title: 'MOMENTS', subtitle: 'From the streets of Tashkent'),
+          const RzSectionHeader(
+              title: 'MOMENTS', subtitle: 'From the streets of Tashkent'),
           const SizedBox(height: 32),
           GridView.builder(
             shrinkWrap: true,
@@ -711,7 +745,9 @@ class _PhotosSection extends StatelessWidget {
                     errorBuilder: (_, __, ___) => Container(
                       color: AppColors.surface,
                       child: const Center(
-                        child: Text('✦', style: TextStyle(color: AppColors.primary, fontSize: 24)),
+                        child: Text('✦',
+                            style: TextStyle(
+                                color: AppColors.primary, fontSize: 24)),
                       ),
                     ),
                   ),
@@ -719,7 +755,8 @@ class _PhotosSection extends StatelessWidget {
                     bottom: 8,
                     left: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       color: AppColors.background.withOpacity(0.7),
                       child: Text(
                         photo['label']!,
