@@ -27,6 +27,7 @@ class AppConstants {
   // Admin UIDs — replace with real Firebase UIDs after setup
   static const List<String> adminUids = [
   's88LODbZzDYrndnb9mV7A3GA4sO2',
+  's88LODbZzDYrndnb9mV7A3GA4sO2'
 ];
 
   // Layout
