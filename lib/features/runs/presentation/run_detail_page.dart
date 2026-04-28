@@ -30,11 +30,16 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
         userId: user.uid,
         userName: user.name,
       );
+      
+      // 👇 THE FIX: Tell Riverpod to wipe the cache and re-check the slot status!
+// 👇 THE FIX: Use the combined string
+      ref.invalidate(userHasSlotProvider('${event.id}_${user.uid}'));      
       if (mounted) {
+        final s = S(ref.read(languageProvider));
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✦  SLOT CLAIMED! See you at the run.'),
-            backgroundColor: AppColors.primary,
+          SnackBar(
+            content: Text(s.slotClaimed),
+            backgroundColor: AppColors.success, // Changed to success green
           ),
         );
       }
@@ -59,6 +64,10 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
         eventId: widget.eventId,
         userId: user.uid,
       );
+      
+      
+// 👇 THE FIX: Use the combined string
+      ref.invalidate(userHasSlotProvider('${widget.eventId}_${user.uid}'));      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Slot cancelled.'), backgroundColor: AppColors.surface),
@@ -93,13 +102,13 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
 
   Widget _buildContent(RunEventModel event, bool isDesktop) {
     final currentUser = ref.read(authServiceProvider).currentUser;
+    final s = S(ref.watch(languageProvider)); // Load the translation dictionary
     
-    // 1. The string-based check we just added
-    final hasSlotAsync = currentUser != null
-        ? ref.watch(userHasSlotProvider('${event.id}_${currentUser.uid}'))
-        : const AsyncData(false);
+   final hasSlotAsync = currentUser != null
+       // 👇 THE FIX: Use the combined string here too
+       ? ref.watch(userHasSlotProvider('${event.id}_${currentUser.uid}'))
+       : const AsyncData(false);
         
-    // 👇 2. MAKE SURE THIS LINE IS HERE! This is what fixes your error.
     final slots = ref.watch(eventSlotsProvider(event.id));
 
     return Padding(
@@ -112,14 +121,14 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
         children: [
           GestureDetector(
             onTap: () => context.go('/runs'),
-            child: const Text(
-              '← ALL RUNS',
-              style: TextStyle(color: AppColors.primary, fontSize: 12, letterSpacing: 2),
+            child: Text(
+              s.allRuns, // Translated string
+              style: const TextStyle(color: AppColors.primary, fontSize: 12, letterSpacing: 2),
             ),
           ),
           const SizedBox(height: 32),
           Text(
-            event.title.toUpperCase(),
+            event.localizedTitle(s.isRu).toUpperCase(), // Translated Title
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 40,
@@ -131,10 +140,10 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
           _InfoRow(icon: Icons.calendar_today_outlined, text: DateFormat('EEEE, MMM d · HH:mm').format(event.date)),
           const SizedBox(height: 8),
           _InfoRow(icon: Icons.location_on_outlined, text: '${event.location}${event.locationDetail != null ? " · ${event.locationDetail}" : ""}'),
-          if (event.description != null) ...[
+          if (event.localizedDescription(s.isRu) != null) ...[
             const SizedBox(height: 24),
             Text(
-              event.description!,
+              event.localizedDescription(s.isRu)!, // Translated Description
               style: const TextStyle(color: AppColors.textSecondary, fontSize: 15, height: 1.6),
             ),
           ],
@@ -153,9 +162,9 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'SLOTS TAKEN',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13, letterSpacing: 2),
+              Text(
+                s.slotsTaken, // Translated string
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, letterSpacing: 2),
               ),
             ],
           ),
@@ -171,7 +180,8 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
             ),
           ),
           const SizedBox(height: 28),
-          // Claim / Cancel button
+          
+          // Claim / Cancel button Logic
           if (event.status == RunEventStatus.open || event.status == RunEventStatus.upcoming)
             hasSlotAsync.when(
               loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
@@ -179,25 +189,49 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
               data: (hasClaimed) => _loading
                   ? const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1)
                   : hasClaimed
-                      ? RzButton(label: '✗  CANCEL MY SLOT', onTap: _cancelSlot, outline: true)
+                      // 👇 THE UI UPGRADE: Shows success message and cancel button
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppColors.success.withOpacity(0.1),
+                                border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                              ),
+                              child: Text(
+                                s.slotClaimed,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            RzButton(label: s.cancelSlot, onTap: _cancelSlot, outline: true, fullWidth: true),
+                          ],
+                        )
                       : event.isFull
-                          ? RzButton(label: 'JOIN WAITLIST', onTap: () {})
-                          : RzButton(label: '✦  GRAB MY SLOT', onTap: () => _claimSlot(event)),
+                          ? RzButton(label: s.joinWaitlist, onTap: () {}, fullWidth: true)
+                          : RzButton(label: s.grabMySlot, onTap: () => _claimSlot(event), fullWidth: true),
             )
           else if (event.status == RunEventStatus.completed)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(border: Border.all(color: AppColors.border, width: 0.5)),
-              child: const Text(
-                'THIS RUN IS COMPLETED. ATTENDANCE HAS BEEN MARKED.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12, letterSpacing: 1),
+              child: Text(
+                s.completedAttendance, // Translated string
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 12, letterSpacing: 1),
               ),
             ),
           const SizedBox(height: 48),
           // Registered runners list
-          const Text(
-            'REGISTERED RUNNERS',
-            style: TextStyle(
+          Text(
+            s.registeredRunners, // Translated string
+            style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -211,7 +245,7 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
             data: (slotList) => Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: slotList.map((s) => _RunnerChip(name: s.userName)).toList(),
+              children: slotList.map((slot) => _RunnerChip(name: slot.userName)).toList(),
             ),
           ),
         ],
@@ -231,7 +265,7 @@ class _InfoRow extends StatelessWidget {
       children: [
         Icon(icon, color: AppColors.primary, size: 15),
         const SizedBox(width: 10),
-        Text(text, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+        Expanded(child: Text(text, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14))),
       ],
     );
   }
@@ -250,7 +284,7 @@ class _RunnerChip extends StatelessWidget {
         border: Border.all(color: AppColors.border, width: 0.5),
       ),
       child: Text(
-        name,
+        name.toUpperCase(),
         style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
       ),
     );

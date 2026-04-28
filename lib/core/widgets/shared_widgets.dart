@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 import '../constants/app_constants.dart';
+import '../constants/app_strings.dart';
 import '../routing/app_router.dart';
 import '../services/providers.dart';
 
@@ -15,72 +16,75 @@ class RzNavbar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentUser = ref.watch(authStateProvider).valueOrNull;
-
-    // 👇 2. Calculate both booleans based on that live user
-    final isLoggedIn = currentUser != null;
-    final isAdmin =
-        currentUser != null && AppConstants.adminUids.contains(currentUser.uid);
+    final isLoggedIn = ref.watch(authStateProvider).valueOrNull != null;
+    final isAdmin = ref.watch(isAdminProvider);
     final isDesktop = MediaQuery.of(context).size.width > 768;
+    final lang = ref.watch(languageProvider);
+    final s = S(lang);
 
     return Container(
       height: AppConstants.navbarHeight,
       decoration: const BoxDecoration(
         color: AppColors.background,
-        border:
-            Border(bottom: BorderSide(color: Color(0xFF2A2A2A), width: 0.5)),
+        border: Border(bottom: BorderSide(color: Color(0xFF2A2A2A), width: 0.5)),
       ),
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop
-            ? AppConstants.desktopPadding
-            : AppConstants.mobilePadding,
+        horizontal: isDesktop ? AppConstants.desktopPadding : AppConstants.mobilePadding,
       ),
       child: Row(
         children: [
-          // Logo
           GestureDetector(
             onTap: () => context.go(AppRoutes.landing),
             child: const RzLogo(),
           ),
           const Spacer(),
           if (isDesktop) ...[
-            _NavLink('RUNS', () => context.go(AppRoutes.runs)),
+            _NavLink(s.runs, () => context.go(AppRoutes.runs)),
             const SizedBox(width: 24),
-            _NavLink('LEADERBOARD', () => context.go(AppRoutes.leaderboard)),
+            _NavLink(s.leaderboard, () => context.go(AppRoutes.leaderboard)),
             const SizedBox(width: 24),
-            _NavLink(
-                'ANNOUNCEMENTS', () => context.go(AppRoutes.announcements)),
+            _NavLink(s.announcements, () => context.go(AppRoutes.announcements)),
             if (isAdmin) ...[
               const SizedBox(width: 24),
-              _NavLink('ADMIN', () => context.go(AppRoutes.admin)),
+              _NavLink(s.admin, () => context.go(AppRoutes.admin)),
             ],
-            const SizedBox(width: 32),
+            const SizedBox(width: 24),
+            // Language toggle for desktop
+            _LangToggle(),
+            const SizedBox(width: 24),
             if (isLoggedIn)
               RzButton(
-                label: 'MY PROFILE',
+                label: s.myProfile,
                 onTap: () {
-                  if (currentUser != null)
-                    context.go('/profile/${currentUser.uid}');
+                  final uid = ref.read(authServiceProvider).currentUser?.uid;
+                  if (uid != null) context.go('/profile/$uid');
                 },
               )
             else
               RzButton(
-                label: 'LOGIN',
+                label: s.login,
                 onTap: () => context.go(AppRoutes.login),
               ),
           ] else
-            IconButton(
-              icon: const Icon(Icons.menu, color: AppColors.textPrimary),
-              onPressed: () =>
-                  _showMobileMenu(context, ref, isLoggedIn, isAdmin),
+            // Mobile: language toggle OUTSIDE hamburger, visible always
+            Row(
+              children: [
+                _LangToggle(),
+                const SizedBox(width: 12),
+                IconButton(
+                  icon: const Icon(Icons.menu, color: AppColors.textPrimary),
+                  onPressed: () =>
+                      _showMobileMenu(context, ref, isLoggedIn, isAdmin, s),
+                ),
+              ],
             ),
         ],
       ),
     );
   }
 
-  void _showMobileMenu(
-      BuildContext context, WidgetRef ref, bool isLoggedIn, bool isAdmin) {
+  void _showMobileMenu(BuildContext context, WidgetRef ref, bool isLoggedIn,
+      bool isAdmin, S s) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -90,35 +94,76 @@ class RzNavbar extends ConsumerWidget implements PreferredSizeWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _MobileNavItem('RUNS', () {
-              Navigator.pop(context);
-              context.go(AppRoutes.runs);
-            }),
-            _MobileNavItem('LEADERBOARD', () {
-              Navigator.pop(context);
-              context.go(AppRoutes.leaderboard);
-            }),
-            _MobileNavItem('ANNOUNCEMENTS', () {
-              Navigator.pop(context);
-              context.go(AppRoutes.announcements);
-            }),
+            _MobileNavItem(s.runs,
+                () { Navigator.pop(context); context.go(AppRoutes.runs); }),
+            _MobileNavItem(s.leaderboard,
+                () { Navigator.pop(context); context.go(AppRoutes.leaderboard); }),
+            _MobileNavItem(s.announcements,
+                () { Navigator.pop(context); context.go(AppRoutes.announcements); }),
             if (isAdmin)
-              _MobileNavItem('ADMIN', () {
-                Navigator.pop(context);
-                context.go(AppRoutes.admin);
-              }),
+              _MobileNavItem(s.admin,
+                  () { Navigator.pop(context); context.go(AppRoutes.admin); }),
             const Divider(color: AppColors.border),
             if (isLoggedIn)
-              _MobileNavItem('MY PROFILE', () {
+              _MobileNavItem(s.myProfile, () {
                 Navigator.pop(context);
                 final uid = ref.read(authServiceProvider).currentUser?.uid;
                 if (uid != null) context.go('/profile/$uid');
               })
             else
-              _MobileNavItem('LOGIN', () {
-                Navigator.pop(context);
-                context.go(AppRoutes.login);
-              }),
+              _MobileNavItem(s.login,
+                  () { Navigator.pop(context); context.go(AppRoutes.login); }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Language Toggle Button ─────────────────────────────────────
+class _LangToggle extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(languageProvider);
+    final isEn = lang == AppLanguage.en;
+
+    return GestureDetector(
+      onTap: () => ref.read(languageProvider.notifier).toggle(),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.primary, width: 1),
+          color: AppColors.primary.withOpacity(0.08),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'EN',
+              style: TextStyle(
+                color: isEn ? AppColors.primary : AppColors.textMuted,
+                fontSize: 11,
+                fontWeight: isEn ? FontWeight.w900 : FontWeight.w400,
+                letterSpacing: 1,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                '|',
+                style: TextStyle(color: AppColors.border, fontSize: 11),
+              ),
+            ),
+            Text(
+              'RU',
+              style: TextStyle(
+                color: !isEn ? AppColors.primary : AppColors.textMuted,
+                fontSize: 11,
+                fontWeight: !isEn ? FontWeight.w900 : FontWeight.w400,
+                letterSpacing: 1,
+              ),
+            ),
           ],
         ),
       ),
@@ -180,10 +225,8 @@ class RzLogo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          '✦',
-          style: TextStyle(color: AppColors.primary, fontSize: fontSize * 0.7),
-        ),
+        Text('✦',
+            style: TextStyle(color: AppColors.primary, fontSize: fontSize * 0.7)),
         const SizedBox(width: 8),
         Text(
           AppConstants.appName,
@@ -233,15 +276,13 @@ class RzStarDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Row(
       children: [
-        const Expanded(child: Divider(color: AppColors.border, thickness: 0.5)),
+         Expanded(child: Divider(color: AppColors.border, thickness: 0.5)),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            '✦',
-            style: TextStyle(color: AppColors.primary, fontSize: 14),
-          ),
+          padding:  EdgeInsets.symmetric(horizontal: 16),
+          child: Text('✦',
+              style: TextStyle(color: AppColors.primary, fontSize: 14)),
         ),
-        const Expanded(child: Divider(color: AppColors.border, thickness: 0.5)),
+         Expanded(child: Divider(color: AppColors.border, thickness: 0.5)),
       ],
     );
   }
@@ -260,7 +301,7 @@ class RzSectionHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '✦ ${title}',
+          '✦ $title',
           style: const TextStyle(
             color: AppColors.primary,
             fontSize: 11,
@@ -270,13 +311,9 @@ class RzSectionHeader extends StatelessWidget {
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 4),
-          Text(
-            subtitle!,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
-          ),
+          Text(subtitle!,
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 14)),
         ],
       ],
     );
@@ -284,56 +321,56 @@ class RzSectionHeader extends StatelessWidget {
 }
 
 // ── Footer ─────────────────────────────────────────────────────
-class RzFooter extends StatelessWidget {
+class RzFooter extends ConsumerWidget {
   const RzFooter({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // 1. Check screen size
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = S(ref.watch(languageProvider));
     final isDesktop = MediaQuery.of(context).size.width > 768;
 
     return Container(
-      width: double.infinity,
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
       ),
-      // 2. Shrink horizontal padding automatically on mobile
       padding: EdgeInsets.symmetric(
-        vertical: 40, 
-        horizontal: isDesktop ? 80 : 20, 
+        vertical: 40,
+        horizontal: isDesktop ? 80 : 20,
       ),
-      // 3. Use Wrap instead of Row so elements stack when squeezed!
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        runSpacing: 24, 
-        children: const [
-          RzLogo(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                AppConstants.motto,
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                '© 2026 RIZZNIGHT.',
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 10,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const RzLogo(),
+          _footerRight(s),
         ],
       ),
+    );
+  }
+
+  Widget _footerRight(S s) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+       const Text(
+          AppConstants.motto,
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          s.allRightsReserved,
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 10,
+            letterSpacing: 1,
+          ),
+        ),
+      ],
     );
   }
 }

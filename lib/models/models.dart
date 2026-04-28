@@ -72,6 +72,7 @@ enum RunEventStatus { upcoming, open, closed, completed }
 class RunEventModel {
   final String id;
   final String title;
+  final String? titleRu;        // Russian title
   final String location;
   final String? locationDetail;
   final DateTime date;
@@ -79,11 +80,13 @@ class RunEventModel {
   final int slotsTaken;
   final RunEventStatus status;
   final String? description;
+  final String? descriptionRu;  // Russian description
   final bool attendanceMarked;
 
   const RunEventModel({
     required this.id,
     required this.title,
+    this.titleRu,
     required this.location,
     this.locationDetail,
     required this.date,
@@ -91,6 +94,7 @@ class RunEventModel {
     this.slotsTaken = 0,
     this.status = RunEventStatus.upcoming,
     this.description,
+    this.descriptionRu,
     this.attendanceMarked = false,
   });
 
@@ -98,11 +102,22 @@ class RunEventModel {
   bool get isFull => slotsTaken >= totalSlots;
   double get fillPercent => slotsTaken / totalSlots;
 
+  // Get localized title
+  String localizedTitle(bool isRu) =>
+      isRu && titleRu != null && titleRu!.isNotEmpty ? titleRu! : title;
+
+  // Get localized description
+  String? localizedDescription(bool isRu) =>
+      isRu && descriptionRu != null && descriptionRu!.isNotEmpty
+          ? descriptionRu
+          : description;
+
   factory RunEventModel.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     return RunEventModel(
       id: doc.id,
       title: d['title'] ?? '',
+      titleRu: d['titleRu'],
       location: d['location'] ?? '',
       locationDetail: d['locationDetail'],
       date: (d['date'] as Timestamp).toDate(),
@@ -113,12 +128,14 @@ class RunEventModel {
         orElse: () => RunEventStatus.upcoming,
       ),
       description: d['description'],
+      descriptionRu: d['descriptionRu'],
       attendanceMarked: d['attendanceMarked'] ?? false,
     );
   }
 
   Map<String, dynamic> toMap() => {
         'title': title,
+        'titleRu': titleRu,
         'location': location,
         'locationDetail': locationDetail,
         'date': Timestamp.fromDate(date),
@@ -126,6 +143,7 @@ class RunEventModel {
         'slotsTaken': slotsTaken,
         'status': status.name,
         'description': description,
+        'descriptionRu': descriptionRu,
         'attendanceMarked': attendanceMarked,
       };
 }
@@ -173,24 +191,38 @@ class SlotModel {
 class AnnouncementModel {
   final String id;
   final String title;
+  final String? titleRu;   // Russian title
   final String body;
+  final String? bodyRu;    // Russian body
   final DateTime postedAt;
   final bool pinned;
 
   const AnnouncementModel({
     required this.id,
     required this.title,
+    this.titleRu,
     required this.body,
+    this.bodyRu,
     required this.postedAt,
     this.pinned = false,
   });
+
+  // Get localized title
+  String localizedTitle(bool isRu) =>
+      isRu && titleRu != null && titleRu!.isNotEmpty ? titleRu! : title;
+
+  // Get localized body
+  String localizedBody(bool isRu) =>
+      isRu && bodyRu != null && bodyRu!.isNotEmpty ? bodyRu! : body;
 
   factory AnnouncementModel.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     return AnnouncementModel(
       id: doc.id,
       title: d['title'] ?? '',
+      titleRu: d['titleRu'],
       body: d['body'] ?? '',
+      bodyRu: d['bodyRu'],
       postedAt: (d['postedAt'] as Timestamp).toDate(),
       pinned: d['pinned'] ?? false,
     );
@@ -198,7 +230,9 @@ class AnnouncementModel {
 
   Map<String, dynamic> toMap() => {
         'title': title,
+        'titleRu': titleRu,
         'body': body,
+        'bodyRu': bodyRu,
         'postedAt': Timestamp.fromDate(postedAt),
         'pinned': pinned,
       };
@@ -257,3 +291,7 @@ class InviteCodeModel {
         'createdAt': Timestamp.fromDate(createdAt),
       };
 }
+
+
+
+

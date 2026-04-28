@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:rizznight/core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/app_strings.dart';
 import '../../../core/widgets/shared_widgets.dart';
-import '../../../core/routing/app_router.dart';
 import '../../../core/services/providers.dart';
 import '../../../core/services/firestore_service.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../models/models.dart';
 
 class AdminPage extends ConsumerStatefulWidget {
@@ -18,7 +18,8 @@ class AdminPage extends ConsumerStatefulWidget {
   ConsumerState<AdminPage> createState() => _AdminPageState();
 }
 
-class _AdminPageState extends ConsumerState<AdminPage> with SingleTickerProviderStateMixin {
+class _AdminPageState extends ConsumerState<AdminPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabs;
 
   @override
@@ -35,14 +36,19 @@ class _AdminPageState extends ConsumerState<AdminPage> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    // Guard: only admins
     final isAdmin = ref.watch(isAdminProvider);
+    final s = S(ref.watch(languageProvider));
+
     if (!isAdmin) {
       return RzScaffold(
-        body: const Center(
+        body: Center(
           child: Padding(
-            padding: EdgeInsets.all(80),
-            child: Text('ACCESS DENIED', style: TextStyle(color: AppColors.error, fontSize: 24, fontWeight: FontWeight.w900)),
+            padding: const EdgeInsets.all(80),
+            child: Text(s.accessDenied,
+                style: const TextStyle(
+                    color: AppColors.error,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900)),
           ),
         ),
       );
@@ -63,12 +69,15 @@ class _AdminPageState extends ConsumerState<AdminPage> with SingleTickerProvider
                 indicatorWeight: 2,
                 labelColor: AppColors.primary,
                 unselectedLabelColor: AppColors.textSecondary,
-                labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.5),
-                tabs: const [
-                  Tab(text: 'RUNS'),
-                  Tab(text: 'ATTENDANCE'),
-                  Tab(text: 'INVITES'),
-                  Tab(text: 'ANNOUNCEMENTS'),
+                labelStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5),
+                tabs: [
+                  Tab(text: s.createRun),
+                  Tab(text: s.attendance),
+                  Tab(text: s.invites),
+                  Tab(text: s.announcementsTab),
                 ],
               ),
             ),
@@ -98,33 +107,54 @@ class _CreateRunTab extends ConsumerStatefulWidget {
 
 class _CreateRunTabState extends ConsumerState<_CreateRunTab> {
   final _titleCtrl = TextEditingController();
+  final _titleRuCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _descRuCtrl = TextEditingController();
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 7));
   bool _loading = false;
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _titleRuCtrl.dispose();
+    _locationCtrl.dispose();
+    _descCtrl.dispose();
+    _descRuCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _createRun() async {
     if (_titleCtrl.text.isEmpty || _locationCtrl.text.isEmpty) return;
     setState(() => _loading = true);
-
     try {
       await ref.read(firestoreServiceProvider).createRunEvent(
-        RunEventModel(
-          id: '',
-          title: _titleCtrl.text.trim(),
-          location: _locationCtrl.text.trim(),
-          description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-          date: _selectedDate,
-          status: RunEventStatus.open,
-        ),
-      );
+            RunEventModel(
+              id: '',
+              title: _titleCtrl.text.trim(),
+              titleRu: _titleRuCtrl.text.trim().isEmpty
+                  ? null
+                  : _titleRuCtrl.text.trim(),
+              location: _locationCtrl.text.trim(),
+              description: _descCtrl.text.trim().isEmpty
+                  ? null
+                  : _descCtrl.text.trim(),
+              descriptionRu: _descRuCtrl.text.trim().isEmpty
+                  ? null
+                  : _descRuCtrl.text.trim(),
+              date: _selectedDate,
+              status: RunEventStatus.open,
+            ),
+          );
       _titleCtrl.clear();
+      _titleRuCtrl.clear();
       _locationCtrl.clear();
       _descCtrl.clear();
+      _descRuCtrl.clear();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Run created!'), backgroundColor: AppColors.success),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Run created!'),
+            backgroundColor: AppColors.success));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -134,40 +164,79 @@ class _CreateRunTabState extends ConsumerState<_CreateRunTab> {
   @override
   Widget build(BuildContext context) {
     final runs = ref.watch(runEventsProvider);
+    final s = S(ref.watch(languageProvider));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(40),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Create form
+          // Form
           Expanded(
-            flex: 1,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('CREATE NEW RUN', style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                Text(s.createNewRun,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1)),
                 const SizedBox(height: 24),
-                _AdminField(label: 'RUN TITLE', controller: _titleCtrl),
-                const SizedBox(height: 16),
-                _AdminField(label: 'LOCATION', controller: _locationCtrl),
-                const SizedBox(height: 16),
-                _AdminField(label: 'DESCRIPTION (OPTIONAL)', controller: _descCtrl, maxLines: 3),
+                _AdminField(label: '${s.runTitle} (EN)', controller: _titleCtrl),
+                const SizedBox(height: 12),
+                _AdminField(label: '${s.runTitle} (RU)', controller: _titleRuCtrl),
+                const SizedBox(height: 12),
+                _AdminField(label: s.location, controller: _locationCtrl),
+                const SizedBox(height: 12),
+                _AdminField(label: '${s.description} (EN)', controller: _descCtrl, maxLines: 3),
+                const SizedBox(height: 12),
+                _AdminField(label: '${s.description} (RU)', controller: _descRuCtrl, maxLines: 3),
                 const SizedBox(height: 16),
                 // Date picker
+                // Date & Time picker
                 GestureDetector(
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    // 1. Pick the Date
+                    final pickedDate = await showDatePicker(
                       context: context,
                       initialDate: _selectedDate,
                       firstDate: DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                       builder: (_, child) => Theme(
-                        data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(primary: AppColors.primary)),
+                        data: ThemeData.dark().copyWith(
+                            colorScheme: const ColorScheme.dark(
+                                primary: AppColors.primary)),
                         child: child!,
                       ),
                     );
-                    if (picked != null) setState(() => _selectedDate = picked);
+
+                    // 2. If a date was picked, Pick the Time
+                    if (pickedDate != null && mounted) {
+                      final pickedTime = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.fromDateTime(_selectedDate),
+                        builder: (_, child) => Theme(
+                          data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                  primary: AppColors.primary)),
+                          child: child!,
+                        ),
+                      );
+
+                      // 3. Combine Date and Time and save it!
+                      if (pickedTime != null) {
+                        setState(() {
+                          _selectedDate = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          );
+                        });
+                      }
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.all(14),
@@ -177,11 +246,14 @@ class _CreateRunTabState extends ConsumerState<_CreateRunTab> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today_outlined, color: AppColors.primary, size: 16),
+                        const Icon(Icons.calendar_today_outlined,
+                            color: AppColors.primary, size: 16),
                         const SizedBox(width: 12),
                         Text(
-                          DateFormat('EEE, MMM d yyyy').format(_selectedDate),
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                          // Notice the format now includes HH:mm so you can see your selected time!
+                          DateFormat('EEE, MMM d yyyy · HH:mm').format(_selectedDate),
+                          style: const TextStyle(
+                              color: AppColors.textPrimary, fontSize: 14),
                         ),
                       ],
                     ),
@@ -189,25 +261,34 @@ class _CreateRunTabState extends ConsumerState<_CreateRunTab> {
                 ),
                 const SizedBox(height: 28),
                 _loading
-                    ? const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1)
-                    : RzButton(label: '✦  CREATE RUN', onTap: _createRun, fullWidth: true),
+                    ? const CircularProgressIndicator(
+                        color: AppColors.primary, strokeWidth: 1)
+                    : RzButton(
+                        label: s.createRunBtn,
+                        onTap: _createRun,
+                        fullWidth: true),
               ],
             ),
           ),
           const SizedBox(width: 48),
           // Run list
           Expanded(
-            flex: 1,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('ALL RUNS', style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                Text(s.allRunsAdmin,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1)),
                 const SizedBox(height: 24),
                 runs.when(
-                  loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
+                  loading: () => const CircularProgressIndicator(
+                      color: AppColors.primary, strokeWidth: 1),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (list) => Column(
-                    children: list.map((run) => _AdminRunRow(run: run)).toList(),
+                    children: list.map((r) => _AdminRunRow(run: r)).toList(),
                   ),
                 ),
               ],
@@ -238,12 +319,26 @@ class _AdminRunRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(run.title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
-                Text(DateFormat('MMM d, yyyy').format(run.date), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Text(run.title,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700)),
+                if (run.titleRu != null)
+                  Text(run.titleRu!,
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 12)),
+                Text(DateFormat('MMM d, yyyy').format(run.date),
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 12)),
               ],
             ),
           ),
-          Text('${run.slotsTaken}/${run.totalSlots}', style: const TextStyle(color: AppColors.primary, fontSize: 14, fontWeight: FontWeight.w700)),
+          Text('${run.slotsTaken}/${run.totalSlots}',
+              style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -268,15 +363,15 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
     setState(() => _loading = true);
     try {
       await ref.read(firestoreServiceProvider).markAttendance(
-        eventId: _selectedEventId!,
-        attendedUserIds: _attendedUserIds.toList(),
-        allSlotIds: slots.map((s) => s.id).toList(),
-      );
+            eventId: _selectedEventId!,
+            attendedUserIds: _attendedUserIds.toList(),
+            allSlotIds: slots.map((s) => s.id).toList(),
+          );
       setState(() => _confirmed = true);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Attendance saved. KM awarded.'), backgroundColor: AppColors.success),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Attendance saved. KM awarded.'),
+            backgroundColor: AppColors.success));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -286,28 +381,40 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
   @override
   Widget build(BuildContext context) {
     final runs = ref.watch(runEventsProvider);
+    final s = S(ref.watch(languageProvider));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('MARK ATTENDANCE', style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          Text(s.markAttendance,
+              style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1)),
           const SizedBox(height: 24),
           runs.when(
-            loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
+            loading: () => const CircularProgressIndicator(
+                color: AppColors.primary, strokeWidth: 1),
             error: (_, __) => const SizedBox.shrink(),
             data: (list) {
-              final eligible = list.where((r) => !r.attendanceMarked).toList();
+              final eligible =
+                  list.where((r) => !r.attendanceMarked).toList();
               return DropdownButtonFormField<String>(
                 value: _selectedEventId,
-                decoration: const InputDecoration(labelText: 'SELECT RUN'),
+                decoration: InputDecoration(labelText: s.selectRun),
                 dropdownColor: AppColors.surface,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                items: eligible.map((r) => DropdownMenuItem(
-                  value: r.id,
-                  child: Text('${r.title} — ${DateFormat('MMM d').format(r.date)}'),
-                )).toList(),
+                style: const TextStyle(
+                    color: AppColors.textPrimary, fontSize: 14),
+                items: eligible
+                    .map((r) => DropdownMenuItem(
+                          value: r.id,
+                          child: Text(
+                              '${r.title} — ${DateFormat('MMM d').format(r.date)}'),
+                        ))
+                    .toList(),
                 onChanged: (v) => setState(() {
                   _selectedEventId = v;
                   _attendedUserIds.clear();
@@ -321,45 +428,61 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
             Consumer(builder: (_, ref, __) {
               final slots = ref.watch(eventSlotsProvider(_selectedEventId!));
               return slots.when(
-                loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
+                loading: () => const CircularProgressIndicator(
+                    color: AppColors.primary, strokeWidth: 1),
                 error: (_, __) => const SizedBox.shrink(),
                 data: (list) {
-                  if (list.isEmpty) return const Text('No one registered for this run.', style: TextStyle(color: AppColors.textSecondary));
+                  if (list.isEmpty) {
+                    return Text(s.noOneRegistered,
+                        style: const TextStyle(
+                            color: AppColors.textSecondary));
+                  }
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${list.length} RUNNERS REGISTERED',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, letterSpacing: 2),
+                        '${list.length} ${s.runnersRegistered}',
+                        style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                            letterSpacing: 2),
                       ),
                       const SizedBox(height: 16),
-                      // Runner list with checkboxes
                       ...list.asMap().entries.map((entry) {
                         final i = entry.key;
                         final slot = entry.value;
-                        final attended = _attendedUserIds.contains(slot.userId);
+                        final attended =
+                            _attendedUserIds.contains(slot.userId);
                         return Container(
                           margin: const EdgeInsets.only(bottom: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: attended ? AppColors.primary.withOpacity(0.08) : AppColors.surface,
+                            color: attended
+                                ? AppColors.primary.withOpacity(0.08)
+                                : AppColors.surface,
                             border: Border.all(
-                              color: attended ? AppColors.primary.withOpacity(0.4) : AppColors.border,
+                              color: attended
+                                  ? AppColors.primary.withOpacity(0.4)
+                                  : AppColors.border,
                               width: 0.5,
                             ),
                           ),
                           child: Row(
                             children: [
-                              Text(
-                                '${i + 1}.',
-                                style: const TextStyle(color: AppColors.textMuted, fontSize: 13, fontWeight: FontWeight.w600),
-                              ),
+                              Text('${i + 1}.',
+                                  style: const TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600)),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   slot.userName.toUpperCase(),
                                   style: TextStyle(
-                                    color: attended ? AppColors.primary : AppColors.textPrimary,
+                                    color: attended
+                                        ? AppColors.primary
+                                        : AppColors.textPrimary,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -367,8 +490,12 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                               ),
                               if (_confirmed)
                                 Icon(
-                                  attended ? Icons.check_circle_outline : Icons.cancel_outlined,
-                                  color: attended ? AppColors.success : AppColors.error,
+                                  attended
+                                      ? Icons.check_circle_outline
+                                      : Icons.cancel_outlined,
+                                  color: attended
+                                      ? AppColors.success
+                                      : AppColors.error,
                                   size: 18,
                                 )
                               else
@@ -378,14 +505,17 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                                       label: '✓',
                                       active: attended,
                                       color: AppColors.success,
-                                      onTap: () => setState(() => _attendedUserIds.add(slot.userId)),
+                                      onTap: () => setState(() =>
+                                          _attendedUserIds.add(slot.userId)),
                                     ),
                                     const SizedBox(width: 8),
                                     _AttendBtn(
                                       label: '✗',
                                       active: !attended,
                                       color: AppColors.error,
-                                      onTap: () => setState(() => _attendedUserIds.remove(slot.userId)),
+                                      onTap: () => setState(() =>
+                                          _attendedUserIds
+                                              .remove(slot.userId)),
                                     ),
                                   ],
                                 ),
@@ -396,9 +526,11 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                       const SizedBox(height: 28),
                       if (!_confirmed)
                         _loading
-                            ? const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1)
+                            ? const CircularProgressIndicator(
+                                color: AppColors.primary, strokeWidth: 1)
                             : RzButton(
-                                label: '✦  CONFIRM & AWARD +${AppConstants.kmPerAttendance.toStringAsFixed(0)}KM TO ${_attendedUserIds.length} RUNNERS',
+                                label:
+                                    '${s.confirmAttendance} ${_attendedUserIds.length}',
                                 onTap: () => _confirm(list),
                                 fullWidth: true,
                               ),
@@ -406,9 +538,12 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           color: AppColors.success.withOpacity(0.1),
-                          child: const Text(
-                            '✓ ATTENDANCE CONFIRMED. KM AWARDED.',
-                            style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w700, letterSpacing: 1),
+                          child: Text(
+                            s.attendanceConfirmed,
+                            style: const TextStyle(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1),
                           ),
                         ),
                     ],
@@ -428,7 +563,11 @@ class _AttendBtn extends StatelessWidget {
   final bool active;
   final Color color;
   final VoidCallback onTap;
-  const _AttendBtn({required this.label, required this.active, required this.color, required this.onTap});
+  const _AttendBtn(
+      {required this.label,
+      required this.active,
+      required this.color,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -439,13 +578,15 @@ class _AttendBtn extends StatelessWidget {
         height: 32,
         decoration: BoxDecoration(
           color: active ? color.withOpacity(0.15) : Colors.transparent,
-          border: Border.all(color: active ? color : AppColors.border, width: 0.5),
+          border: Border.all(
+              color: active ? color : AppColors.border, width: 0.5),
         ),
         child: Center(
-          child: Text(
-            label,
-            style: TextStyle(color: active ? color : AppColors.textMuted, fontSize: 14, fontWeight: FontWeight.w700),
-          ),
+          child: Text(label,
+              style: TextStyle(
+                  color: active ? color : AppColors.textMuted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
         ),
       ),
     );
@@ -467,7 +608,8 @@ class _InviteTabState extends ConsumerState<_InviteTab> {
   Future<void> _generate() async {
     setState(() => _generating = true);
     try {
-      final code = await ref.read(firestoreServiceProvider).generateInviteCode();
+      final code =
+          await ref.read(firestoreServiceProvider).generateInviteCode();
       setState(() => _lastGenerated = code);
     } finally {
       if (mounted) setState(() => _generating = false);
@@ -477,74 +619,105 @@ class _InviteTabState extends ConsumerState<_InviteTab> {
   @override
   Widget build(BuildContext context) {
     final codes = ref.watch(inviteCodesProvider);
+    final s = S(ref.watch(languageProvider));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('INVITE CODES', style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          Text(s.invites,
+              style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1)),
           const SizedBox(height: 24),
           _generating
-              ? const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1)
-              : RzButton(label: '✦  GENERATE NEW CODE', onTap: _generate),
+              ? const CircularProgressIndicator(
+                  color: AppColors.primary, strokeWidth: 1)
+              : RzButton(
+                  label: '✦  GENERATE NEW CODE', onTap: _generate),
           if (_lastGenerated != null) ...[
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary.withOpacity(0.4), width: 1),
+                border: Border.all(
+                    color: AppColors.primary.withOpacity(0.4), width: 1),
                 color: AppColors.primary.withOpacity(0.05),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('NEW CODE GENERATED', style: TextStyle(color: AppColors.textMuted, fontSize: 11, letterSpacing: 2)),
+                  const Text('NEW CODE GENERATED',
+                      style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 11,
+                          letterSpacing: 2)),
                   const SizedBox(height: 8),
-                  Text(
-                    _lastGenerated!,
-                    style: const TextStyle(color: AppColors.primary, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 4),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text('Share this code with the runner.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                  Text(_lastGenerated!,
+                      style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 4)),
                 ],
               ),
             ),
           ],
           const SizedBox(height: 40),
-          const Text('ALL CODES', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, letterSpacing: 2)),
+          const Text('ALL CODES',
+              style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  letterSpacing: 2)),
           const SizedBox(height: 16),
           codes.when(
-            loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
+            loading: () => const CircularProgressIndicator(
+                color: AppColors.primary, strokeWidth: 1),
             error: (_, __) => const SizedBox.shrink(),
             data: (list) => Column(
-              children: list.map((c) => Container(
-                margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.border, width: 0.5),
-                ),
-                child: Row(
-                  children: [
-                    Text(c.code, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 2, fontFamily: 'monospace')),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      color: c.used ? AppColors.textMuted.withOpacity(0.1) : AppColors.success.withOpacity(0.1),
-                      child: Text(
-                        c.used ? 'USED' : 'AVAILABLE',
-                        style: TextStyle(
-                          color: c.used ? AppColors.textMuted : AppColors.success,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.5,
+              children: list
+                  .map((c) => Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          border: Border.all(
+                              color: AppColors.border, width: 0.5),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              )).toList(),
+                        child: Row(
+                          children: [
+                            Text(c.code,
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 2)),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              color: c.used
+                                  ? AppColors.textMuted.withOpacity(0.1)
+                                  : AppColors.success.withOpacity(0.1),
+                              child: Text(
+                                c.used ? 'USED' : 'AVAILABLE',
+                                style: TextStyle(
+                                    color: c.used
+                                        ? AppColors.textMuted
+                                        : AppColors.success,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ))
+                  .toList(),
             ),
           ),
         ],
@@ -563,25 +736,44 @@ class _AnnouncementsTab extends ConsumerStatefulWidget {
 
 class _AnnouncementsTabState extends ConsumerState<_AnnouncementsTab> {
   final _titleCtrl = TextEditingController();
+  final _titleRuCtrl = TextEditingController();
   final _bodyCtrl = TextEditingController();
+  final _bodyRuCtrl = TextEditingController();
   bool _pinned = false;
   bool _loading = false;
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _titleRuCtrl.dispose();
+    _bodyCtrl.dispose();
+    _bodyRuCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _post() async {
     if (_titleCtrl.text.isEmpty || _bodyCtrl.text.isEmpty) return;
     setState(() => _loading = true);
     try {
       await ref.read(firestoreServiceProvider).createAnnouncement(
-        AnnouncementModel(
-          id: '',
-          title: _titleCtrl.text.trim(),
-          body: _bodyCtrl.text.trim(),
-          postedAt: DateTime.now(),
-          pinned: _pinned,
-        ),
-      );
+            AnnouncementModel(
+              id: '',
+              title: _titleCtrl.text.trim(),
+              titleRu: _titleRuCtrl.text.trim().isEmpty
+                  ? null
+                  : _titleRuCtrl.text.trim(),
+              body: _bodyCtrl.text.trim(),
+              bodyRu: _bodyRuCtrl.text.trim().isEmpty
+                  ? null
+                  : _bodyRuCtrl.text.trim(),
+              postedAt: DateTime.now(),
+              pinned: _pinned,
+            ),
+          );
       _titleCtrl.clear();
+      _titleRuCtrl.clear();
       _bodyCtrl.clear();
+      _bodyRuCtrl.clear();
       setState(() => _pinned = false);
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -591,6 +783,7 @@ class _AnnouncementsTabState extends ConsumerState<_AnnouncementsTab> {
   @override
   Widget build(BuildContext context) {
     final announcements = ref.watch(announcementsProvider);
+    final s = S(ref.watch(languageProvider));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(40),
@@ -601,11 +794,20 @@ class _AnnouncementsTabState extends ConsumerState<_AnnouncementsTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('POST ANNOUNCEMENT', style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                Text(s.postAnnouncement,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1)),
                 const SizedBox(height: 24),
-                _AdminField(label: 'TITLE', controller: _titleCtrl),
-                const SizedBox(height: 16),
-                _AdminField(label: 'BODY', controller: _bodyCtrl, maxLines: 4),
+                _AdminField(label: '${s.title} (EN)', controller: _titleCtrl),
+                const SizedBox(height: 12),
+                _AdminField(label: '${s.title} (RU)', controller: _titleRuCtrl),
+                const SizedBox(height: 12),
+                _AdminField(label: '${s.body} (EN)', controller: _bodyCtrl, maxLines: 4),
+                const SizedBox(height: 12),
+                _AdminField(label: '${s.body} (RU)', controller: _bodyRuCtrl, maxLines: 4),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -615,13 +817,16 @@ class _AnnouncementsTabState extends ConsumerState<_AnnouncementsTab> {
                       activeColor: AppColors.primary,
                     ),
                     const SizedBox(width: 8),
-                    const Text('Pin to top', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                    Text(s.pinToTop,
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 13)),
                   ],
                 ),
                 const SizedBox(height: 24),
                 _loading
-                    ? const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1)
-                    : RzButton(label: '✦  POST', onTap: _post, fullWidth: true),
+                    ? const CircularProgressIndicator(
+                        color: AppColors.primary, strokeWidth: 1)
+                    : RzButton(label: s.postBtn, onTap: _post, fullWidth: true),
               ],
             ),
           ),
@@ -630,37 +835,68 @@ class _AnnouncementsTabState extends ConsumerState<_AnnouncementsTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('ALL ANNOUNCEMENTS', style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                Text(s.allAnnouncements,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1)),
                 const SizedBox(height: 24),
                 announcements.when(
-                  loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
+                  loading: () => const CircularProgressIndicator(
+                      color: AppColors.primary, strokeWidth: 1),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (list) => Column(
-                    children: list.map((a) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        border: Border(left: BorderSide(color: a.pinned ? AppColors.primary : AppColors.border, width: a.pinned ? 2 : 0.5)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(a.title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700)),
-                                Text(a.body, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
-                            onPressed: () => ref.read(firestoreServiceProvider).deleteAnnouncement(a.id),
-                          ),
-                        ],
-                      ),
-                    )).toList(),
+                    children: list
+                        .map((a) => Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                border: Border(
+                                    left: BorderSide(
+                                        color: a.pinned
+                                            ? AppColors.primary
+                                            : AppColors.border,
+                                        width: a.pinned ? 2 : 0.5)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(a.title,
+                                            style: const TextStyle(
+                                                color: AppColors.textPrimary,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700)),
+                                        if (a.titleRu != null)
+                                          Text(a.titleRu!,
+                                              style: const TextStyle(
+                                                  color: AppColors.textSecondary,
+                                                  fontSize: 12)),
+                                        Text(a.body,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                                color: AppColors.textSecondary,
+                                                fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 18, color: AppColors.error),
+                                    onPressed: () => ref
+                                        .read(firestoreServiceProvider)
+                                        .deleteAnnouncement(a.id),
+                                  ),
+                                ],
+                              ),
+                            ))
+                        .toList(),
                   ),
                 ),
               ],
@@ -672,24 +908,32 @@ class _AnnouncementsTabState extends ConsumerState<_AnnouncementsTab> {
   }
 }
 
-// ── Shared Admin Field ─────────────────────────────────────────
 class _AdminField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
   final int maxLines;
-  const _AdminField({required this.label, required this.controller, this.maxLines = 1});
+  const _AdminField(
+      {required this.label,
+      required this.controller,
+      this.maxLines = 1});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 2)),
+        Text(label,
+            style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 2)),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
           maxLines: maxLines,
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+          style:
+              const TextStyle(color: AppColors.textPrimary, fontSize: 14),
           decoration: const InputDecoration(),
         ),
       ],
