@@ -48,6 +48,7 @@ class FirestoreService {
   Stream<List<RunEventModel>> runEventsStream() {
     return _db
         .collection(AppConstants.runEventsCollection)
+        .where('attendanceMarked', isEqualTo: false)
         .orderBy('date', descending: false)
         .snapshots()
         .map((snap) => snap.docs.map(RunEventModel.fromDoc).toList());
@@ -56,8 +57,8 @@ class FirestoreService {
   Stream<RunEventModel?> nextRunStream() {
     return _db
         .collection(AppConstants.runEventsCollection)
-        .where('status', whereIn: ['upcoming', 'open'])
-        // 👇 We remove the orderBy line so it stops crashing the server!
+        .where('attendanceMarked', isEqualTo: false)
+        .orderBy('date')
         .limit(1)
         .snapshots()
         .map((snap) =>
@@ -81,7 +82,10 @@ class FirestoreService {
   }
 
   Future<void> createRunEvent(RunEventModel event) async {
-    await _db.collection(AppConstants.runEventsCollection).add(event.toMap());
+    final data = event.toMap();
+    data['attendanceMarked'] = false;
+    data['status'] = 'open';
+    await _db.collection(AppConstants.runEventsCollection).add(data);
   }
 
   Future<void> updateRunEvent(String eventId, Map<String, dynamic> data) async {
@@ -165,45 +169,31 @@ class FirestoreService {
   Future<void> markAttendance({
     required String eventId,
     required List<String> attendedUserIds,
-    required List<String> allSlotIds,
+    required List<SlotModel> allSlots,
   }) async {
     final batch = _db.batch();
 
-    // Mark each slot
-    for (final slotId in allSlotIds) {
-      final slotRef = _db.collection(AppConstants.slotsCollection).doc(slotId);
-      batch.update(slotRef, {'attended': false});
+    for (final slot in allSlots) {
+      final attended = attendedUserIds.contains(slot.userId);
+      batch.update(
+        _db.collection(AppConstants.slotsCollection).doc(slot.id),
+        {'attended': attended},
+      );
     }
 
-    // For attended users, update slot + add km
     for (final uid in attendedUserIds) {
-      // Find their slot for this event
-      final slotQuery = await _db
-          .collection(AppConstants.slotsCollection)
-          .where('eventId', isEqualTo: eventId)
-          .where('userId', isEqualTo: uid)
-          .limit(1)
-          .get();
-
-      if (slotQuery.docs.isNotEmpty) {
-        batch.update(slotQuery.docs.first.reference, {'attended': true});
-      }
-
-      // Add km and increment runsAttended
-      final userRef = _db.collection(AppConstants.usersCollection).doc(uid);
+      final userRef =
+          _db.collection(AppConstants.usersCollection).doc(uid);
       batch.update(userRef, {
         'totalKm': FieldValue.increment(AppConstants.kmPerAttendance),
         'runsAttended': FieldValue.increment(1),
       });
     }
 
-    // Mark event as attendance done
-    final eventRef =
-        _db.collection(AppConstants.runEventsCollection).doc(eventId);
-    batch.update(eventRef, {
-      'attendanceMarked': true,
-      'status': 'completed',
-    });
+    batch.update(
+      _db.collection(AppConstants.runEventsCollection).doc(eventId),
+      {'attendanceMarked': true, 'status': 'completed'},
+    );
 
     await batch.commit();
   }

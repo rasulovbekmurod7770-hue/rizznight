@@ -26,7 +26,7 @@ service cloud.firestore {
 
     // ── Run Events ──────────────────────────────────────────
     match /run_events/{eventId} {
-      allow read: if isLoggedIn();
+      allow read: if true; // public — visible on landing page without login
       allow create, update, delete: if isAdmin();
     }
 

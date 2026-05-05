@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/app_strings.dart';
 import '../../../core/widgets/shared_widgets.dart';
 import '../../../core/services/providers.dart';
 import '../../../core/services/firestore_service.dart';
@@ -102,8 +103,10 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
 
   Widget _buildContent(RunEventModel event, bool isDesktop) {
     final currentUser = ref.read(authServiceProvider).currentUser;
-    final s = S(ref.watch(languageProvider)); // Load the translation dictionary
-    
+    final lang = ref.watch(languageProvider);
+    final s = S(lang);
+    final isPastStartTime = DateTime.now().isAfter(event.date);
+
    final hasSlotAsync = currentUser != null
        // 👇 THE FIX: Use the combined string here too
        ? ref.watch(userHasSlotProvider('${event.id}_${currentUser.uid}'))
@@ -182,51 +185,57 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
           const SizedBox(height: 28),
           
           // Claim / Cancel button Logic
-          if (event.status == RunEventStatus.open || event.status == RunEventStatus.upcoming)
-            hasSlotAsync.when(
-              loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (hasClaimed) => _loading
-                  ? const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1)
-                  : hasClaimed
-                      // 👇 THE UI UPGRADE: Shows success message and cancel button
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.1),
-                                border: Border.all(color: AppColors.success.withOpacity(0.3)),
-                              ),
-                              child: Text(
-                                s.slotClaimed,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: AppColors.success,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            RzButton(label: s.cancelSlot, onTap: _cancelSlot, outline: true, fullWidth: true),
-                          ],
-                        )
-                      : event.isFull
-                          ? RzButton(label: s.joinWaitlist, onTap: () {}, fullWidth: true)
-                          : RzButton(label: s.grabMySlot, onTap: () => _claimSlot(event), fullWidth: true),
-            )
-          else if (event.status == RunEventStatus.completed)
+          if (isPastStartTime) ...[
             Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(border: Border.all(color: AppColors.border, width: 0.5)),
-              child: Text(
-                s.completedAttendance, // Translated string
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12, letterSpacing: 1),
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.border, width: 0.5),
+                color: AppColors.surface,
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lock_outline, color: AppColors.textMuted, size: 16),
+                  const SizedBox(width: 12),
+                  Text(
+                    s.isRu ? 'РЕГИСТРАЦИЯ ЗАКРЫТА' : 'REGISTRATION CLOSED',
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
               ),
             ),
+          ] else if (event.status == RunEventStatus.open ||
+              event.status == RunEventStatus.upcoming) ...[
+            hasSlotAsync.when(
+              loading: () => const CircularProgressIndicator(
+                  color: AppColors.primary, strokeWidth: 1),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (hasClaimed) => _loading
+                  ? const CircularProgressIndicator(
+                      color: AppColors.primary, strokeWidth: 1)
+                  : hasClaimed
+                      ? RzButton(label: s.cancelSlot, onTap: _cancelSlot, outline: true)
+                      : event.isFull
+                          ? RzButton(label: s.joinWaitlist, onTap: () {})
+                          : RzButton(label: s.grabMySlot, onTap: () => _claimSlot(event)),
+            ),
+          ] else if (event.status == RunEventStatus.completed) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border, width: 0.5)),
+              child: Text(
+                s.completedAttendance,
+                style: const TextStyle(
+                    color: AppColors.textMuted, fontSize: 12, letterSpacing: 1),
+              ),
+            ),
+          ],
           const SizedBox(height: 48),
           // Registered runners list
           Text(

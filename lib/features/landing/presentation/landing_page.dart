@@ -157,11 +157,42 @@ class _NextRunSection extends ConsumerWidget {
         data: (run) {
           if (run == null) {
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 RzSectionHeader(title: s.nextRun),
-                const SizedBox(height: 16),
-                Text(s.noUpcomingRuns,
-                    style: const TextStyle(color: AppColors.textSecondary)),
+                const SizedBox(height: 32),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.2),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        '✦',
+                        style: TextStyle(color: AppColors.primary, fontSize: 32),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        s.isRu
+                            ? 'ЗАБЕГОВ НЕТ. МЫ ОТДЫХАЕМ.\nСЛЕДИТЕ ЗА СЛЕДУЮЩИМ ДРОПОМ.'
+                            : 'NO UPCOMING RUNS.\nWE ARE RESTING.\nSTAY TUNED FOR THE NEXT DROP.',
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
               ],
             );
           }

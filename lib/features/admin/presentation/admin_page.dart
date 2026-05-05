@@ -358,23 +358,67 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
   final Set<String> _attendedUserIds = {};
   bool _loading = false;
   bool _confirmed = false;
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(() {
+      setState(() => _searchQuery = _searchCtrl.text.toLowerCase().trim());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _confirm(List<SlotModel> slots) async {
+    if (_attendedUserIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No runners marked as attended.'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
+
     try {
       await ref.read(firestoreServiceProvider).markAttendance(
             eventId: _selectedEventId!,
             attendedUserIds: _attendedUserIds.toList(),
-            allSlotIds: slots.map((s) => s.id).toList(),
+            allSlots: slots,
           );
-      setState(() => _confirmed = true);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Attendance saved. KM awarded.'),
-            backgroundColor: AppColors.success));
+        setState(() {
+          _confirmed = true;
+          _loading = false;
+          _selectedEventId = null;
+          _attendedUserIds.clear();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Attendance saved. KM awarded successfully.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
     }
   }
 
@@ -419,6 +463,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                   _selectedEventId = v;
                   _attendedUserIds.clear();
                   _confirmed = false;
+                  _searchCtrl.clear();
                 }),
               );
             },
@@ -437,6 +482,9 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                         style: const TextStyle(
                             color: AppColors.textSecondary));
                   }
+                  final filtered = _searchQuery.isEmpty
+                      ? list
+                      : list.where((slot) => slot.userName.toLowerCase().contains(_searchQuery)).toList();
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -447,82 +495,106 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                             fontSize: 11,
                             letterSpacing: 2),
                       ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _searchCtrl,
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: s.isRu ? 'Поиск по имени...' : 'Search by name...',
+                          prefixIcon: const Icon(Icons.search, color: AppColors.primary, size: 18),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? GestureDetector(
+                                  onTap: () => _searchCtrl.clear(),
+                                  child: const Icon(Icons.close, color: AppColors.textMuted, size: 16),
+                                )
+                              : null,
+                        ),
+                      ),
                       const SizedBox(height: 16),
-                      ...list.asMap().entries.map((entry) {
-                        final i = entry.key;
-                        final slot = entry.value;
-                        final attended =
-                            _attendedUserIds.contains(slot.userId);
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 6),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: attended
-                                ? AppColors.primary.withOpacity(0.08)
-                                : AppColors.surface,
-                            border: Border.all(
-                              color: attended
-                                  ? AppColors.primary.withOpacity(0.4)
-                                  : AppColors.border,
-                              width: 0.5,
-                            ),
+                      if (filtered.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            s.isRu ? 'Бегун не найден.' : 'No runner found.',
+                            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
                           ),
-                          child: Row(
-                            children: [
-                              Text('${i + 1}.',
-                                  style: const TextStyle(
-                                      color: AppColors.textMuted,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600)),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  slot.userName.toUpperCase(),
-                                  style: TextStyle(
-                                    color: attended
-                                        ? AppColors.primary
-                                        : AppColors.textPrimary,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
+                        )
+                      else
+                        ...filtered.asMap().entries.map((entry) {
+                          final i = entry.key;
+                          final slot = entry.value;
+                          final attended =
+                              _attendedUserIds.contains(slot.userId);
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: attended
+                                  ? AppColors.primary.withOpacity(0.08)
+                                  : AppColors.surface,
+                              border: Border.all(
+                                color: attended
+                                    ? AppColors.primary.withOpacity(0.4)
+                                    : AppColors.border,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Text('${i + 1}.',
+                                    style: const TextStyle(
+                                        color: AppColors.textMuted,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600)),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    slot.userName.toUpperCase(),
+                                    style: TextStyle(
+                                      color: attended
+                                          ? AppColors.primary
+                                          : AppColors.textPrimary,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              if (_confirmed)
-                                Icon(
-                                  attended
-                                      ? Icons.check_circle_outline
-                                      : Icons.cancel_outlined,
-                                  color: attended
-                                      ? AppColors.success
-                                      : AppColors.error,
-                                  size: 18,
-                                )
-                              else
-                                Row(
-                                  children: [
-                                    _AttendBtn(
-                                      label: '✓',
-                                      active: attended,
-                                      color: AppColors.success,
-                                      onTap: () => setState(() =>
-                                          _attendedUserIds.add(slot.userId)),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _AttendBtn(
-                                      label: '✗',
-                                      active: !attended,
-                                      color: AppColors.error,
-                                      onTap: () => setState(() =>
-                                          _attendedUserIds
-                                              .remove(slot.userId)),
-                                    ),
-                                  ],
-                                ),
-                            ],
-                          ),
-                        );
-                      }),
+                                if (_confirmed)
+                                  Icon(
+                                    attended
+                                        ? Icons.check_circle_outline
+                                        : Icons.cancel_outlined,
+                                    color: attended
+                                        ? AppColors.success
+                                        : AppColors.error,
+                                    size: 18,
+                                  )
+                                else
+                                  Row(
+                                    children: [
+                                      _AttendBtn(
+                                        label: '✓',
+                                        active: attended,
+                                        color: AppColors.success,
+                                        onTap: () => setState(() =>
+                                            _attendedUserIds.add(slot.userId)),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _AttendBtn(
+                                        label: '✗',
+                                        active: !attended,
+                                        color: AppColors.error,
+                                        onTap: () => setState(() =>
+                                            _attendedUserIds
+                                                .remove(slot.userId)),
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          );
+                        }),
                       const SizedBox(height: 28),
                       if (!_confirmed)
                         _loading
