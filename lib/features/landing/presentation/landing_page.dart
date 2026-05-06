@@ -819,7 +819,7 @@ class _SocialSection extends ConsumerWidget {
                 label: s.isRu ? 'ПОДДЕРЖКА' : 'SUPPORT US',
                 sublabel: s.donateSublabel,
                 buttonLabel: s.donate,
-                url: '',
+                url: 'https://t.me/Rizznight_donate_bot',
               ),
             ],
           ),
