@@ -9,19 +9,34 @@ import '../../../core/services/providers.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../models/models.dart';
 
-class ProfilePage extends ConsumerWidget {
+class ProfilePage extends ConsumerStatefulWidget {
   final String uid;
   const ProfilePage({super.key, required this.uid});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends ConsumerState<ProfilePage> {
+  late final Future<UserModel?> _userFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _userFuture = ref
+        .read(firestoreServiceProvider)
+        .getUser(widget.uid);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isOwnProfile =
-        ref.read(authServiceProvider).currentUser?.uid == uid;
+        ref.read(authServiceProvider).currentUser?.uid == widget.uid;
     final isDesktop = MediaQuery.of(context).size.width > 768;
 
     return RzScaffold(
       body: FutureBuilder<UserModel?>(
-        future: ref.read(firestoreServiceProvider).getUser(uid),
+        future: _userFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -35,7 +50,8 @@ class ProfilePage extends ConsumerWidget {
           if (!snapshot.hasData || snapshot.data == null) {
             return const Center(
               child: Text('User not found.',
-                  style: TextStyle(color: AppColors.textSecondary)),
+                  style: TextStyle(
+                      color: AppColors.textSecondary)),
             );
           }
           return _ProfileContent(
