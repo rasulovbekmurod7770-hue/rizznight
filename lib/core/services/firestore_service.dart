@@ -239,6 +239,15 @@ class FirestoreService {
         .map((snap) => snap.docs.map(InviteCodeModel.fromDoc).toList());
   }
 
+  // ── DeepenWell ─────────────────────────────────────────────
+  Future<void> updateDeepenWellUsername(
+      String uid, String username) async {
+    await _db
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .update({'deepenwellUsername': username});
+  }
+
   // ── Club Stats ─────────────────────────────────────────────
   Future<Map<String, dynamic>> getClubStats() async {
     final usersSnap = await _db.collection(AppConstants.usersCollection).get();

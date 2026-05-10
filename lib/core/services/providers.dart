@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'auth_service.dart';
 import 'firestore_service.dart';
+import 'deepenwell_service.dart';
 import '../../models/models.dart';
 import '../../core/constants/app_strings.dart';
 
@@ -81,3 +82,7 @@ final inviteCodesProvider = StreamProvider<List<InviteCodeModel>>((ref) {
 final clubStatsProvider = FutureProvider<Map<String, dynamic>>((ref) {
   return ref.read(firestoreServiceProvider).getClubStats();
 });
+
+// ── DeepenWell ─────────────────────────────────────────────────
+final deepenWellServiceProvider =
+    Provider<DeepenWellService>((ref) => DeepenWellService());

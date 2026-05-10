@@ -10,6 +10,7 @@ class UserModel {
   final int runsAttended;
   final bool isAdmin;
   final DateTime joinedAt;
+  final String? deepenwellUsername;
 
   const UserModel({
     required this.uid,
@@ -20,6 +21,7 @@ class UserModel {
     this.runsAttended = 0,
     this.isAdmin = false,
     required this.joinedAt,
+    this.deepenwellUsername,
   });
 
   factory UserModel.fromDoc(DocumentSnapshot doc) {
@@ -33,6 +35,7 @@ class UserModel {
       runsAttended: d['runsAttended'] ?? 0,
       isAdmin: d['isAdmin'] ?? false,
       joinedAt: (d['joinedAt'] as Timestamp).toDate(),
+      deepenwellUsername: d['deepenwellUsername'],
     );
   }
 
@@ -44,6 +47,7 @@ class UserModel {
         'runsAttended': runsAttended,
         'isAdmin': isAdmin,
         'joinedAt': Timestamp.fromDate(joinedAt),
+        'deepenwellUsername': deepenwellUsername,
       };
 
   UserModel copyWith({
@@ -52,6 +56,7 @@ class UserModel {
     double? totalKm,
     int? runsAttended,
     bool? isAdmin,
+    String? deepenwellUsername,
   }) {
     return UserModel(
       uid: uid,
@@ -62,6 +67,7 @@ class UserModel {
       runsAttended: runsAttended ?? this.runsAttended,
       isAdmin: isAdmin ?? this.isAdmin,
       joinedAt: joinedAt,
+      deepenwellUsername: deepenwellUsername ?? this.deepenwellUsername,
     );
   }
 }
