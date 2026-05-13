@@ -14,12 +14,10 @@ class AppTheme {
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primary,
         secondary: AppColors.primary,
-        background: AppColors.background,
         surface: AppColors.surface,
         error: AppColors.error,
         onPrimary: AppColors.background,
         onSecondary: AppColors.background,
-        onBackground: AppColors.textPrimary,
         onSurface: AppColors.textPrimary,
       ),
       textTheme: GoogleFonts.barlowCondensedTextTheme().copyWith(

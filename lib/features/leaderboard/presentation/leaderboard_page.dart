@@ -71,10 +71,10 @@ class LeaderboardPage extends ConsumerWidget {
                     const RzStarDivider(),
                     const SizedBox(height: 32),
                     // Table header
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
                       child: Row(
-                        children: const [
+                        children: [
                           SizedBox(width: 48, child: Text('RANK', style: TextStyle(color: AppColors.textMuted, fontSize: 11, letterSpacing: 1.5))),
                           Expanded(child: Text('RUNNER', style: TextStyle(color: AppColors.textMuted, fontSize: 11, letterSpacing: 1.5))),
                           SizedBox(width: 80, child: Text('RUNS', style: TextStyle(color: AppColors.textMuted, fontSize: 11, letterSpacing: 1.5), textAlign: TextAlign.center)),

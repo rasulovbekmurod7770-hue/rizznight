@@ -3,10 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/constants/app_strings.dart';
 import '../../../core/widgets/shared_widgets.dart';
 import '../../../core/services/providers.dart';
-import '../../../core/services/firestore_service.dart';
 import '../../../models/models.dart';
 
 class RunDetailPage extends ConsumerStatefulWidget {

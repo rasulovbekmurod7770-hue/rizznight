@@ -388,10 +388,10 @@ class _DeepenWellSectionState
         // Header row
         Row(
           children: [
-            Column(
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '✦ DEEPENWELL CHALLENGE',
                   style: TextStyle(
                     color: AppColors.primary,
@@ -400,8 +400,8 @@ class _DeepenWellSectionState
                     letterSpacing: 3,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
+                SizedBox(height: 4),
+                Text(
                   'May 1–21 Run & Walk Challenge',
                   style: TextStyle(
                     color: AppColors.textSecondary,

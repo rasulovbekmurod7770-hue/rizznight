@@ -447,7 +447,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
               final eligible =
                   list.where((r) => !r.attendanceMarked).toList();
               return DropdownButtonFormField<String>(
-                value: _selectedEventId,
+                initialValue: _selectedEventId,
                 decoration: InputDecoration(labelText: s.selectRun),
                 dropdownColor: AppColors.surface,
                 style: const TextStyle(
@@ -886,7 +886,7 @@ class _AnnouncementsTabState extends ConsumerState<_AnnouncementsTab> {
                     Switch(
                       value: _pinned,
                       onChanged: (v) => setState(() => _pinned = v),
-                      activeColor: AppColors.primary,
+                      activeThumbColor: AppColors.primary,
                     ),
                     const SizedBox(width: 8),
                     Text(s.pinToTop,

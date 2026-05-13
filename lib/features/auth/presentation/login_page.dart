@@ -263,9 +263,8 @@ class _RzField extends StatelessWidget {
     required this.label,
     required this.controller,
     this.obscure = false,
-    this.hint,
     this.keyboardType,
-    this.validator,
+    this.validator, this.hint,
   });
 
   @override

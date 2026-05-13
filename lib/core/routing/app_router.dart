@@ -86,7 +86,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const AnnouncementsPage(),
       ),
     ],
-    errorBuilder: (_, state) => Scaffold(
+    errorBuilder: (_, state) => const Scaffold(
       backgroundColor: Colors.black,
       body: Center(
         child: Text(

@@ -148,8 +148,8 @@ class _LangToggle extends ConsumerWidget {
                 letterSpacing: 1,
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 6),
               child: Text(
                 '|',
                 style: TextStyle(color: AppColors.border, fontSize: 11),
@@ -354,7 +354,7 @@ class RzFooter extends ConsumerWidget {
       children: [
        const Text(
           AppConstants.motto,
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.primary,
             fontSize: 12,
             fontWeight: FontWeight.w700,

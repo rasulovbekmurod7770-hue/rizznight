@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/constants/app_strings.dart';
 import '../../../core/widgets/shared_widgets.dart';
 import '../../../core/routing/app_router.dart';
 import '../../../core/services/providers.dart';
@@ -542,7 +541,7 @@ class _LeaderboardPreview extends ConsumerWidget {
           final top3 = entries.take(3).toList();
           if (top3.isEmpty) return const SizedBox.shrink();
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Row(
                 children: [
