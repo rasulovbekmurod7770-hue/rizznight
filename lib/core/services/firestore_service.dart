@@ -111,26 +111,52 @@ class FirestoreService {
     required String userId,
     required String userName,
   }) async {
-    final batch = _db.batch();
+    final eventRef = _db
+        .collection(AppConstants.runEventsCollection)
+        .doc(eventId);
 
-    // Add slot
-    final slotRef = _db.collection(AppConstants.slotsCollection).doc();
-    batch.set(
-        slotRef,
-        SlotModel(
-          id: slotRef.id,
-          eventId: eventId,
-          userId: userId,
-          userName: userName,
-          claimedAt: DateTime.now(),
-        ).toMap());
+    await _db.runTransaction((transaction) async {
+      // Read the event inside the transaction
+      final eventSnap = await transaction.get(eventRef);
 
-    // Increment slotsTaken
-    final eventRef =
-        _db.collection(AppConstants.runEventsCollection).doc(eventId);
-    batch.update(eventRef, {'slotsTaken': FieldValue.increment(1)});
+      if (!eventSnap.exists) {
+        throw Exception('Run event not found.');
+      }
 
-    await batch.commit();
+      final slotsTaken = eventSnap.data()?['slotsTaken'] ?? 0;
+      final totalSlots = eventSnap.data()?['totalSlots'] ?? 100;
+
+      if (slotsTaken >= totalSlots) {
+        throw Exception('No slots available.');
+      }
+
+      // Check for existing slot INSIDE the transaction
+      final existingSlots = await _db
+          .collection(AppConstants.slotsCollection)
+          .where('eventId', isEqualTo: eventId)
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (existingSlots.docs.isNotEmpty) {
+        throw Exception('You already have a slot for this run.');
+      }
+
+      // All checks passed — create slot and increment counter
+      final slotRef = _db.collection(AppConstants.slotsCollection).doc();
+
+      transaction.set(slotRef, {
+        'eventId': eventId,
+        'userId': userId,
+        'userName': userName,
+        'claimedAt': FieldValue.serverTimestamp(),
+        'attended': false,
+      });
+
+      transaction.update(eventRef, {
+        'slotsTaken': FieldValue.increment(1),
+      });
+    });
   }
 
   Future<void> cancelSlot({

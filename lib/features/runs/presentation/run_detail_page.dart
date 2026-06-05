@@ -214,13 +214,26 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
                   color: AppColors.primary, strokeWidth: 1),
               error: (_, __) => const SizedBox.shrink(),
               data: (hasClaimed) => _loading
-                  ? const CircularProgressIndicator(
-                      color: AppColors.primary, strokeWidth: 1)
+                  ? const SizedBox(
+                      width: double.infinity,
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(14),
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                            strokeWidth: 1,
+                          ),
+                        ),
+                      ),
+                    )
                   : hasClaimed
                       ? RzButton(label: s.cancelSlot, onTap: _cancelSlot, outline: true)
                       : event.isFull
                           ? RzButton(label: s.joinWaitlist, onTap: () {})
-                          : RzButton(label: s.grabMySlot, onTap: () => _claimSlot(event)),
+                          : RzButton(
+                              label: s.grabMySlot,
+                              onTap: () => _claimSlot(event),
+                            ),
             ),
           ] else if (event.status == RunEventStatus.completed) ...[
             Container(
