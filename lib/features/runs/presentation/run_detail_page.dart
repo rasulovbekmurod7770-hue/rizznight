@@ -117,12 +117,9 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
     final s = S(lang);
     final isPastStartTime = DateTime.now().isAfter(event.date);
 
-   final hasSlotAsync = currentUser != null
-       // 👇 THE FIX: Use the combined string here too
-       ? ref.watch(userHasSlotProvider('${event.id}_${currentUser.uid}'))
-       : const AsyncData(false);
-        
-    final slots = ref.watch(eventSlotsProvider(event.id));
+    final slotsAsync = ref.watch(eventSlotsProvider(event.id));
+    final hasClaimed = currentUser != null &&
+        (slotsAsync.valueOrNull?.any((s) => s.userId == currentUser.uid) ?? false);
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -221,43 +218,27 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
             ),
           ] else if (event.status == RunEventStatus.open ||
               event.status == RunEventStatus.upcoming) ...[
-            hasSlotAsync.when(
-              loading: () => const CircularProgressIndicator(
-                  color: AppColors.primary, strokeWidth: 1),
-              error: (error, stackTrace) {
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border, width: 0.5),
-                  ),
-                  child: const Text(
-                    'Unable to load this right now. Please try again.',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                  ),
-                );
-              },
-              data: (hasClaimed) => _loading
-                  ? const SizedBox(
-                      width: double.infinity,
-                      child: Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(14),
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                            strokeWidth: 1,
-                          ),
+            _loading
+                ? const SizedBox(
+                    width: double.infinity,
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(14),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                          strokeWidth: 1,
                         ),
                       ),
-                    )
-                  : hasClaimed
-                      ? RzButton(label: s.cancelSlot, onTap: _cancelSlot, outline: true)
-                      : event.isFull
-                          ? RzButton(label: s.joinWaitlist, onTap: () {})
-                          : RzButton(
-                              label: s.grabMySlot,
-                              onTap: () => _claimSlot(event),
-                            ),
-            ),
+                    ),
+                  )
+                : hasClaimed
+                    ? RzButton(label: s.cancelSlot, onTap: _cancelSlot, outline: true)
+                    : event.isFull
+                        ? RzButton(label: s.joinWaitlist, onTap: () {})
+                        : RzButton(
+                            label: s.grabMySlot,
+                            onTap: () => _claimSlot(event),
+                          ),
           ] else if (event.status == RunEventStatus.completed) ...[
             Container(
               padding: const EdgeInsets.all(16),
@@ -282,7 +263,7 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
             ),
           ),
           const SizedBox(height: 16),
-          slots.when(
+          slotsAsync.when(
             loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
             error: (error, stackTrace) {
               return Container(

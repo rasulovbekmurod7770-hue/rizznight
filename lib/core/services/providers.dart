@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth_service.dart';
 import 'firestore_service.dart';
 import 'deepenwell_service.dart';
+import '../constants/app_constants.dart';
 import '../../models/models.dart';
 
 export '../../core/constants/app_strings.dart';
@@ -45,12 +47,14 @@ final nextRunProvider = StreamProvider<RunEventModel?>((ref) {
 
 final runEventProvider =
     StreamProvider.family<RunEventModel?, String>((ref, eventId) {
-  return ref
-      .read(firestoreServiceProvider)
-      .eventSlotsStream(eventId)
-      .asyncMap((_) async {
+  return FirebaseFirestore.instance
+      .collection(AppConstants.runEventsCollection)
+      .doc(eventId)
+      .snapshots()
+      .map((doc) {
+    if (!doc.exists) return null;
     try {
-      return await ref.read(firestoreServiceProvider).getRunEvent(eventId);
+      return RunEventModel.fromDoc(doc);
     } catch (e) {
       return null;
     }
@@ -61,20 +65,6 @@ final runEventProvider =
 // ── Slots ──────────────────────────────────────────────────────
 final eventSlotsProvider = StreamProvider.family<List<SlotModel>, String>((ref, eventId) {
   return ref.read(firestoreServiceProvider).eventSlotsStream(eventId);
-});
-
-// THE FIX: Accept a single String, then split it back into two pieces
-final userHasSlotProvider =
-    FutureProvider.family<bool, String>((ref, combinedIds) async {
-  try {
-    final parts = combinedIds.split('_');
-    return await ref.read(firestoreServiceProvider).hasUserClaimedSlot(
-          parts[0], // eventId
-          parts[1], // userId
-        );
-  } catch (e) {
-    return false;
-  }
 });
 
 // ── Announcements ──────────────────────────────────────────────
