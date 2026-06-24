@@ -23,9 +23,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _userFuture = ref
-        .read(firestoreServiceProvider)
-        .getUser(widget.uid);
+    _userFuture = ref.read(firestoreServiceProvider)
+        .getUser(widget.uid)
+        .catchError((e) => null);
   }
 
   @override
@@ -347,18 +347,26 @@ class _DeepenWellSectionState
       _searching = true;
       _error = null;
     });
-    final stats = await ref
-        .read(deepenWellServiceProvider)
-        .getUserChallengeStats(username);
-    if (mounted) {
-      setState(() {
-        _stats = stats;
-        _searching = false;
-        if (stats != null && stats['found'] == false) {
-          _error =
-              'Username not found in the challenge leaderboard.';
-        }
-      });
+    try {
+      final stats = await ref
+          .read(deepenWellServiceProvider)
+          .getUserChallengeStats(username);
+      if (mounted) {
+        setState(() {
+          _stats = stats;
+          _searching = false;
+          if (stats != null && stats['found'] == false) {
+            _error = 'Username not found in the challenge leaderboard.';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _searching = false;
+          _error = 'Could not load Deepenwell stats right now.';
+        });
+      }
     }
   }
 

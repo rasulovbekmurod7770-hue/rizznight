@@ -156,6 +156,12 @@ class _CreateRunTabState extends ConsumerState<_CreateRunTab> {
             content: Text('Run created!'),
             backgroundColor: AppColors.success));
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -683,6 +689,12 @@ class _InviteTabState extends ConsumerState<_InviteTab> {
       final code =
           await ref.read(firestoreServiceProvider).generateInviteCode();
       setState(() => _lastGenerated = code);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _generating = false);
     }
@@ -847,6 +859,12 @@ class _AnnouncementsTabState extends ConsumerState<_AnnouncementsTab> {
       _bodyCtrl.clear();
       _bodyRuCtrl.clear();
       setState(() => _pinned = false);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

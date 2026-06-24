@@ -48,8 +48,13 @@ final runEventProvider =
   return ref
       .read(firestoreServiceProvider)
       .eventSlotsStream(eventId)
-      .asyncMap(
-          (_) => ref.read(firestoreServiceProvider).getRunEvent(eventId));
+      .asyncMap((_) async {
+    try {
+      return await ref.read(firestoreServiceProvider).getRunEvent(eventId);
+    } catch (e) {
+      return null;
+    }
+  });
 });
 
 // ── Slots ──────────────────────────────────────────────────────

@@ -19,26 +19,23 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
   bool _loading = false;
 
   Future<void> _claimSlot(RunEventModel event) async {
-    final user = await ref.read(authServiceProvider).getCurrentUserModel();
-    if (user == null) return;
-
     setState(() => _loading = true);
     try {
+      final user = await ref.read(authServiceProvider).getCurrentUserModel();
+      if (user == null) {
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
       await ref.read(firestoreServiceProvider).claimSlot(
         eventId: event.id,
         userId: user.uid,
         userName: user.name,
       );
-      
-      // 👇 THE FIX: Tell Riverpod to wipe the cache and re-check the slot status!
-// 👇 THE FIX: Use the combined string
-      ref.invalidate(userHasSlotProvider('${event.id}_${user.uid}'));      
       if (mounted) {
-        final s = S(ref.read(languageProvider));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(s.slotClaimed),
-            backgroundColor: AppColors.success, // Changed to success green
+          const SnackBar(
+            content: Text('✦  SLOT CLAIMED! See you at the run.'),
+            backgroundColor: AppColors.primary,
           ),
         );
       }
@@ -54,22 +51,26 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
   }
 
   Future<void> _cancelSlot() async {
-    final user = await ref.read(authServiceProvider).getCurrentUserModel();
-    if (user == null) return;
-
     setState(() => _loading = true);
     try {
+      final user = await ref.read(authServiceProvider).getCurrentUserModel();
+      if (user == null) {
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
       await ref.read(firestoreServiceProvider).cancelSlot(
         eventId: widget.eventId,
         userId: user.uid,
       );
-      
-      
-// 👇 THE FIX: Use the combined string
-      ref.invalidate(userHasSlotProvider('${widget.eventId}_${user.uid}'));      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Slot cancelled.'), backgroundColor: AppColors.surface),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
         );
       }
     } finally {
