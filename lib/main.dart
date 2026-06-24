@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -7,8 +9,20 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const ProviderScope(child: RizznightApp()));
+
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    // In production this could log to a crash reporting service
+  };
+
+  await runZonedGuarded(() async {
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
+    runApp(const ProviderScope(child: RizznightApp()));
+  }, (error, stackTrace) {
+    // Catches any error not caught by FlutterError
+    // Prevents the app from showing raw exception text
+  });
 }
 
 class RizznightApp extends ConsumerWidget {

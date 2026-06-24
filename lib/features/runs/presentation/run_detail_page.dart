@@ -90,7 +90,18 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
             child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
           ),
         ),
-        error: (_, __) => const Center(child: Text('Run not found.', style: TextStyle(color: AppColors.textSecondary))),
+        error: (error, stackTrace) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border, width: 0.5),
+            ),
+            child: const Text(
+              'Unable to load this right now. Please try again.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+          );
+        },
         data: (event) {
           if (event == null) return const SizedBox.shrink();
           return _buildContent(event, isDesktop);
@@ -212,7 +223,18 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
             hasSlotAsync.when(
               loading: () => const CircularProgressIndicator(
                   color: AppColors.primary, strokeWidth: 1),
-              error: (_, __) => const SizedBox.shrink(),
+              error: (error, stackTrace) {
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.border, width: 0.5),
+                  ),
+                  child: const Text(
+                    'Unable to load this right now. Please try again.',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  ),
+                );
+              },
               data: (hasClaimed) => _loading
                   ? const SizedBox(
                       width: double.infinity,
@@ -261,7 +283,18 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
           const SizedBox(height: 16),
           slots.when(
             loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (error, stackTrace) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border, width: 0.5),
+                ),
+                child: const Text(
+                  'Unable to load this right now. Please try again.',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                ),
+              );
+            },
             data: (slotList) => Wrap(
               spacing: 8,
               runSpacing: 8,

@@ -59,12 +59,17 @@ final eventSlotsProvider = StreamProvider.family<List<SlotModel>, String>((ref, 
 });
 
 // THE FIX: Accept a single String, then split it back into two pieces
-final userHasSlotProvider = FutureProvider.family<bool, String>((ref, combinedIds) {
-  final parts = combinedIds.split('_');
-  return ref.read(firestoreServiceProvider).hasUserClaimedSlot(
-        parts[0], // eventId
-        parts[1], // userId
-      );
+final userHasSlotProvider =
+    FutureProvider.family<bool, String>((ref, combinedIds) async {
+  try {
+    final parts = combinedIds.split('_');
+    return await ref.read(firestoreServiceProvider).hasUserClaimedSlot(
+          parts[0], // eventId
+          parts[1], // userId
+        );
+  } catch (e) {
+    return false;
+  }
 });
 
 // ── Announcements ──────────────────────────────────────────────
