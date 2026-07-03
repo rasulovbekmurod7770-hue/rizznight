@@ -12,6 +12,8 @@ service cloud.firestore {
     }
 
     function isAdmin() {
+      // TODO: replace get() with Firebase Auth custom claims (request.auth.token.isAdmin)
+      // to avoid +1 Firestore read on every admin-gated write.
       return isLoggedIn() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
@@ -60,6 +62,12 @@ service cloud.firestore {
     match /leaderboard/{docId} {
       allow read: if isLoggedIn();
       allow write: if isAdmin();
+    }
+
+    // ── Club stats (landing page) ─────────────────────────────
+    match /meta/{docId} {
+      allow read: if true;
+      allow create, update: if isLoggedIn();
     }
   }
 }

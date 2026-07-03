@@ -86,11 +86,11 @@ class _AdminPageState extends ConsumerState<AdminPage>
       ),
       body: TabBarView(
         controller: _tabs,
-        children: const [
-          _CreateRunTab(),
-          _AttendanceTab(),
-          _InviteTab(),
-          _AnnouncementsTab(),
+        children: [
+          const _CreateRunTab(),
+          _AttendanceTab(tabController: _tabs, tabIndex: 1),
+          const _InviteTab(),
+          const _AnnouncementsTab(),
         ],
       ),
     );
@@ -353,7 +353,13 @@ class _AdminRunRow extends StatelessWidget {
 
 // ── Tab 2: Attendance ──────────────────────────────────────────
 class _AttendanceTab extends ConsumerStatefulWidget {
-  const _AttendanceTab();
+  final TabController tabController;
+  final int tabIndex;
+
+  const _AttendanceTab({
+    required this.tabController,
+    required this.tabIndex,
+  });
 
   @override
   ConsumerState<_AttendanceTab> createState() => _AttendanceTabState();
@@ -433,205 +439,236 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
     final runs = ref.watch(runEventsProvider);
     final s = S(ref.watch(languageProvider));
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(s.markAttendance,
-              style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1)),
-          const SizedBox(height: 24),
-          runs.when(
-            loading: () => const CircularProgressIndicator(
-                color: AppColors.primary, strokeWidth: 1),
-            error: (_, __) => const SizedBox.shrink(),
-            data: (list) {
-              final eligible =
-                  list.where((r) => !r.attendanceMarked).toList();
-              return DropdownButtonFormField<String>(
-                initialValue: _selectedEventId,
-                decoration: InputDecoration(labelText: s.selectRun),
-                dropdownColor: AppColors.surface,
-                style: const TextStyle(
-                    color: AppColors.textPrimary, fontSize: 14),
-                items: eligible
-                    .map((r) => DropdownMenuItem(
-                          value: r.id,
-                          child: Text(
-                              '${r.title} — ${DateFormat('MMM d').format(r.date)}'),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() {
-                  _selectedEventId = v;
-                  _attendedUserIds.clear();
-                  _confirmed = false;
-                  _searchCtrl.clear();
-                }),
-              );
-            },
-          ),
-          if (_selectedEventId != null) ...[
-            const SizedBox(height: 32),
-            Consumer(builder: (_, ref, __) {
-              final slots = ref.watch(eventSlotsProvider(_selectedEventId!));
-              return slots.when(
+    return AnimatedBuilder(
+      animation: widget.tabController,
+      builder: (context, _) {
+        final isTabActive = widget.tabController.index == widget.tabIndex;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(s.markAttendance,
+                  style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1)),
+              const SizedBox(height: 24),
+              runs.when(
                 loading: () => const CircularProgressIndicator(
                     color: AppColors.primary, strokeWidth: 1),
                 error: (_, __) => const SizedBox.shrink(),
                 data: (list) {
-                  if (list.isEmpty) {
-                    return Text(s.noOneRegistered,
-                        style: const TextStyle(
-                            color: AppColors.textSecondary));
-                  }
-                  final filtered = _searchQuery.isEmpty
-                      ? list
-                      : list.where((slot) => slot.userName.toLowerCase().contains(_searchQuery)).toList();
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${list.length} ${s.runnersRegistered}',
-                        style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 11,
-                            letterSpacing: 2),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _searchCtrl,
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: s.isRu ? 'Поиск по имени...' : 'Search by name...',
-                          prefixIcon: const Icon(Icons.search, color: AppColors.primary, size: 18),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? GestureDetector(
-                                  onTap: () => _searchCtrl.clear(),
-                                  child: const Icon(Icons.close, color: AppColors.textMuted, size: 16),
-                                )
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (filtered.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text(
-                            s.isRu ? 'Бегун не найден.' : 'No runner found.',
-                            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                          ),
-                        )
-                      else
-                        ...filtered.asMap().entries.map((entry) {
-                          final i = entry.key;
-                          final slot = entry.value;
-                          final attended =
-                              _attendedUserIds.contains(slot.userId);
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 6),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: attended
-                                  ? AppColors.primary.withOpacity(0.08)
-                                  : AppColors.surface,
-                              border: Border.all(
-                                color: attended
-                                    ? AppColors.primary.withOpacity(0.4)
-                                    : AppColors.border,
-                                width: 0.5,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Text('${i + 1}.',
-                                    style: const TextStyle(
-                                        color: AppColors.textMuted,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600)),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    slot.userName.toUpperCase(),
-                                    style: TextStyle(
-                                      color: attended
-                                          ? AppColors.primary
-                                          : AppColors.textPrimary,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                if (_confirmed)
-                                  Icon(
-                                    attended
-                                        ? Icons.check_circle_outline
-                                        : Icons.cancel_outlined,
-                                    color: attended
-                                        ? AppColors.success
-                                        : AppColors.error,
-                                    size: 18,
-                                  )
-                                else
-                                  Row(
-                                    children: [
-                                      _AttendBtn(
-                                        label: '✓',
-                                        active: attended,
-                                        color: AppColors.success,
-                                        onTap: () => setState(() =>
-                                            _attendedUserIds.add(slot.userId)),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _AttendBtn(
-                                        label: '✗',
-                                        active: !attended,
-                                        color: AppColors.error,
-                                        onTap: () => setState(() =>
-                                            _attendedUserIds
-                                                .remove(slot.userId)),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                          );
-                        }),
-                      const SizedBox(height: 28),
-                      if (!_confirmed)
-                        _loading
-                            ? const CircularProgressIndicator(
-                                color: AppColors.primary, strokeWidth: 1)
-                            : RzButton(
-                                label:
-                                    '${s.confirmAttendance} ${_attendedUserIds.length}',
-                                onTap: () => _confirm(list),
-                                fullWidth: true,
-                              ),
-                      if (_confirmed)
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          color: AppColors.success.withOpacity(0.1),
-                          child: Text(
-                            s.attendanceConfirmed,
-                            style: const TextStyle(
-                                color: AppColors.success,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1),
-                          ),
-                        ),
-                    ],
+                  final eligible =
+                      list.where((r) => !r.attendanceMarked).toList();
+                  return DropdownButtonFormField<String>(
+                    initialValue: _selectedEventId,
+                    decoration: InputDecoration(labelText: s.selectRun),
+                    dropdownColor: AppColors.surface,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary, fontSize: 14),
+                    items: eligible
+                        .map((r) => DropdownMenuItem(
+                              value: r.id,
+                              child: Text(
+                                  '${r.title} — ${DateFormat('MMM d').format(r.date)}'),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() {
+                      _selectedEventId = v;
+                      _attendedUserIds.clear();
+                      _confirmed = false;
+                      _searchCtrl.clear();
+                    }),
                   );
                 },
-              );
-            }),
-          ],
-        ],
-      ),
+              ),
+              if (_selectedEventId != null && isTabActive) ...[
+                const SizedBox(height: 32),
+                Consumer(builder: (_, ref, __) {
+                  final slots =
+                      ref.watch(eventSlotsProvider(_selectedEventId!));
+                  return slots.when(
+                    loading: () => const CircularProgressIndicator(
+                        color: AppColors.primary, strokeWidth: 1),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (list) {
+                      if (list.isEmpty) {
+                        return Text(s.noOneRegistered,
+                            style: const TextStyle(
+                                color: AppColors.textSecondary));
+                      }
+                      final filtered = _searchQuery.isEmpty
+                          ? list
+                          : list
+                              .where((slot) => slot.userName
+                                  .toLowerCase()
+                                  .contains(_searchQuery))
+                              .toList();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${list.length} ${s.runnersRegistered}',
+                            style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 11,
+                                letterSpacing: 2),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _searchCtrl,
+                            style: const TextStyle(
+                                color: AppColors.textPrimary, fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: s.isRu
+                                  ? 'Поиск по имени...'
+                                  : 'Search by name...',
+                              prefixIcon: const Icon(Icons.search,
+                                  color: AppColors.primary, size: 18),
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? GestureDetector(
+                                      onTap: () => _searchCtrl.clear(),
+                                      child: const Icon(Icons.close,
+                                          color: AppColors.textMuted,
+                                          size: 16),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (filtered.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                s.isRu
+                                    ? 'Бегун не найден.'
+                                    : 'No runner found.',
+                                style: const TextStyle(
+                                    color: AppColors.textMuted, fontSize: 13),
+                              ),
+                            )
+                          else
+                            ...filtered.asMap().entries.map((entry) {
+                              final i = entry.key;
+                              final slot = entry.value;
+                              final attended =
+                                  _attendedUserIds.contains(slot.userId);
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: attended
+                                      ? AppColors.primary.withOpacity(0.08)
+                                      : AppColors.surface,
+                                  border: Border.all(
+                                    color: attended
+                                        ? AppColors.primary.withOpacity(0.4)
+                                        : AppColors.border,
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text('${i + 1}.',
+                                        style: const TextStyle(
+                                            color: AppColors.textMuted,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600)),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        slot.userName.toUpperCase(),
+                                        style: TextStyle(
+                                          color: attended
+                                              ? AppColors.primary
+                                              : AppColors.textPrimary,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    if (_confirmed)
+                                      Icon(
+                                        attended
+                                            ? Icons.check_circle_outline
+                                            : Icons.cancel_outlined,
+                                        color: attended
+                                            ? AppColors.success
+                                            : AppColors.error,
+                                        size: 18,
+                                      )
+                                    else
+                                      Row(
+                                        children: [
+                                          _AttendBtn(
+                                            label: '✓',
+                                            active: attended,
+                                            color: AppColors.success,
+                                            onTap: () => setState(() =>
+                                                _attendedUserIds
+                                                    .add(slot.userId)),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _AttendBtn(
+                                            label: '✗',
+                                            active: !attended,
+                                            color: AppColors.error,
+                                            onTap: () => setState(() =>
+                                                _attendedUserIds
+                                                    .remove(slot.userId)),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          const SizedBox(height: 28),
+                          if (!_confirmed)
+                            _loading
+                                ? const CircularProgressIndicator(
+                                    color: AppColors.primary, strokeWidth: 1)
+                                : RzButton(
+                                    label:
+                                        '${s.confirmAttendance} ${_attendedUserIds.length}',
+                                    onTap: () => _confirm(list),
+                                    fullWidth: true,
+                                  ),
+                          if (_confirmed)
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              color: AppColors.success.withOpacity(0.1),
+                              child: Text(
+                                s.attendanceConfirmed,
+                                style: const TextStyle(
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  );
+                }),
+              ] else if (_selectedEventId != null) ...[
+                const SizedBox(height: 32),
+                Text(
+                  s.isRu
+                      ? 'Перейдите на вкладку «Посещаемость», чтобы загрузить список.'
+                      : 'Switch to the Attendance tab to load the runner list.',
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 13),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

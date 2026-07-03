@@ -23,6 +23,14 @@ class AppConstants {
   static const String leaderboardCollection = 'leaderboard';
   static const String waitlistCollection = 'waitlist';
   static const String inviteCodesCollection = 'invite_codes';
+  static const String metaCollection = 'meta';
+  static const String clubStatsDocId = 'clubStats';
+
+  // Query limits (Firestore read control)
+  static const int runEventsQueryLimit = 50;
+  static const int announcementsQueryLimit = 20;
+  static const int inviteCodesQueryLimit = 50;
+  static const int eventSlotsPreviewLimit = 100;
 
   // Admin UIDs — replace with real Firebase UIDs after setup
   static const List<String> adminUids = [

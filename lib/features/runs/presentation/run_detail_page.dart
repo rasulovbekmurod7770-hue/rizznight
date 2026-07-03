@@ -18,6 +18,15 @@ class RunDetailPage extends ConsumerStatefulWidget {
 class _RunDetailPageState extends ConsumerState<RunDetailPage> {
   bool _loading = false;
 
+  void _invalidateSlotState(String eventId, String? uid) {
+    ref.invalidate(eventSlotsPreviewProvider(eventId));
+    if (uid != null) {
+      ref.invalidate(
+        myClaimedSlotProvider((eventId: eventId, userId: uid)),
+      );
+    }
+  }
+
   Future<void> _claimSlot(RunEventModel event) async {
     setState(() => _loading = true);
     try {
@@ -31,6 +40,7 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
         userId: user.uid,
         userName: user.name,
       );
+      _invalidateSlotState(event.id, user.uid);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -62,6 +72,7 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
         eventId: widget.eventId,
         userId: user.uid,
       );
+      _invalidateSlotState(widget.eventId, user.uid);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Slot cancelled.'), backgroundColor: AppColors.surface),
@@ -116,10 +127,14 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
     final lang = ref.watch(languageProvider);
     final s = S(lang);
     final isPastStartTime = DateTime.now().isAfter(event.date);
+    final uid = currentUser?.uid ?? '';
 
-    final slotsAsync = ref.watch(eventSlotsProvider(event.id));
-    final hasClaimed = currentUser != null &&
-        (slotsAsync.valueOrNull?.any((s) => s.userId == currentUser.uid) ?? false);
+    final claimedAsync = uid.isEmpty
+        ? const AsyncValue<bool>.data(false)
+        : ref.watch(myClaimedSlotProvider((eventId: event.id, userId: uid)));
+    final hasClaimed = claimedAsync.valueOrNull ?? false;
+    final claimStatusLoading =
+        uid.isNotEmpty && claimedAsync.isLoading && !claimedAsync.hasValue;
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -132,13 +147,13 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
           GestureDetector(
             onTap: () => context.go('/runs'),
             child: Text(
-              s.allRuns, // Translated string
+              s.allRuns,
               style: const TextStyle(color: AppColors.primary, fontSize: 12, letterSpacing: 2),
             ),
           ),
           const SizedBox(height: 32),
           Text(
-            event.localizedTitle(s.isRu).toUpperCase(), // Translated Title
+            event.localizedTitle(s.isRu).toUpperCase(),
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 40,
@@ -153,14 +168,13 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
           if (event.localizedDescription(s.isRu) != null) ...[
             const SizedBox(height: 24),
             Text(
-              event.localizedDescription(s.isRu)!, // Translated Description
+              event.localizedDescription(s.isRu)!,
               style: const TextStyle(color: AppColors.textSecondary, fontSize: 15, height: 1.6),
             ),
           ],
           const SizedBox(height: 40),
           const Divider(color: AppColors.border, thickness: 0.5),
           const SizedBox(height: 32),
-          // Slot bar
           Row(
             children: [
               Text(
@@ -173,7 +187,7 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
               ),
               const SizedBox(width: 12),
               Text(
-                s.slotsTaken, // Translated string
+                s.slotsTaken,
                 style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, letterSpacing: 2),
               ),
             ],
@@ -190,8 +204,6 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
             ),
           ),
           const SizedBox(height: 28),
-          
-          // Claim / Cancel button Logic
           if (isPastStartTime) ...[
             Container(
               width: double.infinity,
@@ -218,7 +230,7 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
             ),
           ] else if (event.status == RunEventStatus.open ||
               event.status == RunEventStatus.upcoming) ...[
-            _loading
+            _loading || claimStatusLoading
                 ? const SizedBox(
                     width: double.infinity,
                     child: Center(
@@ -252,9 +264,8 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
             ),
           ],
           const SizedBox(height: 48),
-          // Registered runners list
           Text(
-            s.registeredRunners, // Translated string
+            s.registeredRunners,
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 11,
@@ -263,27 +274,39 @@ class _RunDetailPageState extends ConsumerState<RunDetailPage> {
             ),
           ),
           const SizedBox(height: 16),
-          slotsAsync.when(
-            loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
-            error: (error, stackTrace) {
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.border, width: 0.5),
-                ),
-                child: const Text(
-                  'Unable to load this right now. Please try again.',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                ),
-              );
-            },
-            data: (slotList) => Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: slotList.map((slot) => _RunnerChip(name: slot.userName)).toList(),
-            ),
-          ),
+          _RegisteredRunnersSection(eventId: event.id),
         ],
+      ),
+    );
+  }
+}
+
+class _RegisteredRunnersSection extends ConsumerWidget {
+  final String eventId;
+  const _RegisteredRunnersSection({required this.eventId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final runnersAsync = ref.watch(eventSlotsPreviewProvider(eventId));
+
+    return runnersAsync.when(
+      loading: () => const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 1),
+      error: (error, stackTrace) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.border, width: 0.5),
+          ),
+          child: const Text(
+            'Unable to load this right now. Please try again.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          ),
+        );
+      },
+      data: (slotList) => Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: slotList.map((slot) => _RunnerChip(name: slot.userName)).toList(),
       ),
     );
   }
