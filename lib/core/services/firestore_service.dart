@@ -7,15 +7,11 @@ class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final _uuid = const Uuid();
 
-  // ── Users ──────────────────────────────────────────────────
-  Stream<UserModel> userStream(String uid) {
-    return _db
-        .collection(AppConstants.usersCollection)
-        .doc(uid)
-        .snapshots()
-        .map((doc) => UserModel.fromDoc(doc));
-  }
+  DocumentReference<Map<String, dynamic>> get _clubStatsRef => _db
+      .collection(AppConstants.metaCollection)
+      .doc(AppConstants.clubStatsDocId);
 
+  // ── Users ──────────────────────────────────────────────────
   Future<UserModel?> getUser(String uid) async {
     final doc =
         await _db.collection(AppConstants.usersCollection).doc(uid).get();
@@ -50,6 +46,7 @@ class FirestoreService {
         .collection(AppConstants.runEventsCollection)
         .where('attendanceMarked', isEqualTo: false)
         .orderBy('date', descending: false)
+        .limit(AppConstants.runEventsQueryLimit)
         .snapshots()
         .map((snap) => snap.docs.map(RunEventModel.fromDoc).toList());
   }
@@ -104,6 +101,18 @@ class FirestoreService {
         .limit(1)
         .get();
     return query.docs.isNotEmpty;
+  }
+
+  Future<List<SlotModel>> getEventSlots(
+    String eventId, {
+    int limit = AppConstants.eventSlotsPreviewLimit,
+  }) async {
+    final query = await _db
+        .collection(AppConstants.slotsCollection)
+        .where('eventId', isEqualTo: eventId)
+        .limit(limit)
+        .get();
+    return query.docs.map(SlotModel.fromDoc).toList();
   }
 
   Future<void> claimSlot({
@@ -182,11 +191,11 @@ class FirestoreService {
     await batch.commit();
   }
 
+  /// Admin attendance only — live listener on all slots for an event.
   Stream<List<SlotModel>> eventSlotsStream(String eventId) {
     return _db
         .collection(AppConstants.slotsCollection)
         .where('eventId', isEqualTo: eventId)
-        // .orderBy('claimedAt')
         .snapshots()
         .map((snap) => snap.docs.map(SlotModel.fromDoc).toList());
   }
@@ -207,6 +216,9 @@ class FirestoreService {
       );
     }
 
+    final kmAwarded =
+        attendedUserIds.length * AppConstants.kmPerAttendance;
+
     for (final uid in attendedUserIds) {
       final userRef =
           _db.collection(AppConstants.usersCollection).doc(uid);
@@ -215,6 +227,12 @@ class FirestoreService {
         'runsAttended': FieldValue.increment(1),
       });
     }
+
+    batch.set(
+      _clubStatsRef,
+      {'totalKm': FieldValue.increment(kmAwarded)},
+      SetOptions(merge: true),
+    );
 
     batch.update(
       _db.collection(AppConstants.runEventsCollection).doc(eventId),
@@ -230,6 +248,7 @@ class FirestoreService {
         .collection(AppConstants.announcementsCollection)
         .orderBy('pinned', descending: true)
         .orderBy('postedAt', descending: true)
+        .limit(AppConstants.announcementsQueryLimit)
         .snapshots()
         .map((snap) => snap.docs.map(AnnouncementModel.fromDoc).toList());
   }
@@ -261,6 +280,7 @@ class FirestoreService {
     return _db
         .collection(AppConstants.inviteCodesCollection)
         .orderBy('createdAt', descending: true)
+        .limit(AppConstants.inviteCodesQueryLimit)
         .snapshots()
         .map((snap) => snap.docs.map(InviteCodeModel.fromDoc).toList());
   }
@@ -276,14 +296,14 @@ class FirestoreService {
 
   // ── Club Stats ─────────────────────────────────────────────
   Future<Map<String, dynamic>> getClubStats() async {
-    final usersSnap = await _db.collection(AppConstants.usersCollection).get();
-    double totalKm = 0;
-    for (final doc in usersSnap.docs) {
-      totalKm += (doc.data()['totalKm'] ?? 0).toDouble();
+    final doc = await _clubStatsRef.get();
+    if (!doc.exists) {
+      return {'totalMembers': 0, 'totalKm': 0.0};
     }
+    final data = doc.data()!;
     return {
-      'totalMembers': usersSnap.docs.length,
-      'totalKm': totalKm,
+      'totalMembers': data['totalMembers'] ?? 0,
+      'totalKm': (data['totalKm'] ?? 0).toDouble(),
     };
   }
 }

@@ -36,6 +36,13 @@ class AuthService {
         .collection(AppConstants.usersCollection)
         .doc(uid)
         .set(user.toMap());
+    await _db
+        .collection(AppConstants.metaCollection)
+        .doc(AppConstants.clubStatsDocId)
+        .set(
+          {'totalMembers': FieldValue.increment(1)},
+          SetOptions(merge: true),
+        );
     await credential.user!.updateDisplayName(name);
 
     return user;
