@@ -70,8 +70,8 @@ class S {
   String get whoRunsTashkent =>
       isRu ? 'КТО ПРАВИТ ТАШКЕНТОМ' : 'WHO RUNS TASHKENT';
   String get rankedByKm =>
-      isRu ? 'Рейтинг по заработанным км.' : 'Ranked by total KM earned through attendance.';
-  String get fullBoard => isRu ? 'ПОЛНЫЙ РЕЙТИНГ →' : 'FULL BOARD →';
+      isRu ? 'Рейтинг по заработанным км.' : 'Total KM earned through attendance.';
+  String get fullBoard => isRu ? 'РЕЙТИНГ →' : 'BOARD →';
   String get runsAttended => isRu ? 'ЗАБЕГОВ' : 'RUNS';
   String get totalKm => isRu ? 'ВСЕГО КМ' : 'TOTAL KM';
   String get runner => isRu ? 'БЕГУН' : 'RUNNER';

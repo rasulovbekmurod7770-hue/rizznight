@@ -549,6 +549,7 @@ class _LeaderboardPreview extends ConsumerWidget {
                       title: s.leaderboardTitle, subtitle: s.rankedByKm),
                   const Spacer(),
                   GestureDetector(
+                    
                     onTap: () => context.go(AppRoutes.leaderboard),
                     child: Text(s.fullBoard,
                         style: const TextStyle(
@@ -603,6 +604,7 @@ class _PodiumCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = S(ref.watch(languageProvider));
     return Container(
+      width: 300  ,
       margin: const EdgeInsets.only(right: 12, bottom: 12),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
